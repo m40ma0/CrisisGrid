@@ -28,6 +28,15 @@ export const cities: City[] = [
     averageSpeedKmh: 30,
     bboxKm: 22,
   },
+  {
+    id: "demo-high-risk",
+    name: "Demo - High Risk Score",
+    country: "Simulation",
+    center: { lat: 14.5995, lng: 120.9842 },
+    zoom: 11,
+    averageSpeedKmh: 24,
+    bboxKm: 26,
+  },
 ];
 
 export const getCityById = (id: City["id"]) =>

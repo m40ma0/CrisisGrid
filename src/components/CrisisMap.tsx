@@ -1,6 +1,6 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 
-import { Loader2, MapPinned } from "lucide-react";
+import { Crosshair, Loader2, MapPinned, Route, ShieldAlert } from "lucide-react";
 import maplibregl, { type Map as MapLibreMap, type Marker as MapLibreMarker } from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { resolveVisibleRoute } from "../services/routing";
@@ -151,6 +151,10 @@ export function CrisisMap() {
       ),
     [dispatchPlan],
   );
+  const hospitals = facilities.filter((facility) => facility.type === "hospital");
+  const shelters = facilities.filter((facility) => facility.type === "shelter");
+  const activeRoutes = dispatchPlan?.assignments.length ?? 0;
+  const criticalIncidents = incidents.filter((incident) => incident.urgency === "critical").length;
 
   useEffect(() => {
     if (!mapNode.current || map.current) return;
@@ -350,15 +354,27 @@ export function CrisisMap() {
       .filter(Boolean) ?? [];
 
   return (
-    <section className="relative min-h-[560px] overflow-hidden rounded-lg border border-command-line bg-zinc-100 shadow-command">
-      <div className="absolute left-4 top-4 z-20 rounded border border-white/80 bg-white/95 px-3 py-2 shadow-sm">
-        <div className="flex items-center gap-2">
-          <MapPinned className="h-4 w-4 text-red-600" />
-          <span className="text-sm font-black text-zinc-950">{selectedCity.name}</span>
+    <section className="relative min-h-[560px] overflow-hidden rounded-lg border border-[#bdc8bf] bg-zinc-100 shadow-command">
+      <div className="absolute left-4 top-4 z-20 w-[230px] rounded-lg border border-white/80 bg-[#101411]/95 p-3 text-white shadow-lg backdrop-blur">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="mb-1 flex items-center gap-2">
+              <MapPinned className="h-4 w-4 shrink-0 text-red-400" />
+              <span className="truncate text-sm font-black">{selectedCity.name}</span>
+            </div>
+            <p className="text-[11px] text-zinc-300">
+              {mapState === "live" ? "OpenFreeMap live" : "Fallback grid"}
+            </p>
+          </div>
+          <span className="rounded bg-emerald-400 px-2 py-1 text-[10px] font-black text-zinc-950">
+            MAP
+          </span>
         </div>
-        <p className="text-xs text-zinc-500">
-          {mapState === "live" ? "MapLibre + OpenFreeMap" : "Fallback map"} · {incidents.length} incidents
-        </p>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <MapStat label="Inc" value={incidents.length} tone="text-red-300" />
+          <MapStat label="Crit" value={criticalIncidents} tone="text-orange-300" />
+          <MapStat label="Rt" value={activeRoutes} tone="text-blue-300" />
+        </div>
       </div>
 
       {mapState !== "fallback" && <div ref={mapNode} className="h-full min-h-[560px] w-full" />}
@@ -426,13 +442,74 @@ export function CrisisMap() {
         </div>
       )}
 
-      <div className="absolute bottom-4 left-4 z-20 flex flex-wrap gap-2 rounded border border-white/80 bg-white/95 px-3 py-2 text-[11px] font-bold shadow-sm">
-        <span className="text-red-700">Incidents</span>
-        <span className="text-blue-700">Resources</span>
-        <span className="text-emerald-700">Hospitals</span>
-        <span className="text-purple-700">Shelters</span>
-        <span className="text-amber-700">Estimated routes</span>
+      <div className="absolute bottom-4 right-4 z-20 w-[210px] rounded-lg border border-white/80 bg-white/95 p-3 shadow-lg backdrop-blur">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-black text-zinc-950">
+            <ShieldAlert className="h-4 w-4 text-red-600" />
+            Map Key
+          </div>
+          <span className="text-[10px] font-black text-zinc-400">LIVE</span>
+        </div>
+        <div className="space-y-2">
+          <KeyRow color="#dc2626" label="Incidents" value={incidents.length} />
+          <KeyRow color="#2563eb" label="Resources" value={resources.length} />
+          <KeyRow color="#16a34a" label="Hospitals" value={hospitals.length} />
+          <KeyRow color="#7c3aed" label="Shelters" value={shelters.length} />
+          <KeyRow color="#f97316" label="Routes" value={activeRoutes} dashed />
+        </div>
+        {roadClosures.length > 0 && (
+          <div className="mt-3 rounded border border-red-200 bg-red-50 px-2 py-2 text-[11px] font-bold text-red-700">
+            {roadClosures.length} blocked corridor{roadClosures.length > 1 ? "s" : ""}
+          </div>
+        )}
       </div>
     </section>
+  );
+}
+
+function MapStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: string;
+}) {
+  return (
+    <div className="rounded border border-white/10 bg-white/10 px-2 py-2">
+      <div className={`text-base font-black ${tone}`}>{value}</div>
+      <div className="text-[10px] font-bold uppercase text-zinc-400">{label}</div>
+    </div>
+  );
+}
+
+function KeyRow({
+  color,
+  label,
+  value,
+  dashed,
+}: {
+  color: string;
+  label: string;
+  value: number;
+  dashed?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-xs">
+      <div className="flex items-center gap-2">
+        {dashed ? (
+          <span className="flex h-4 w-5 items-center justify-center">
+            <Route className="h-4 w-4" style={{ color }} />
+          </span>
+        ) : (
+          <span className="grid h-5 w-5 place-items-center rounded-full border-2 border-white shadow-sm" style={{ background: color }}>
+            <Crosshair className="h-3 w-3 text-white" />
+          </span>
+        )}
+        <span className="font-bold text-zinc-700">{label}</span>
+      </div>
+      <span className="font-black text-zinc-950">{value}</span>
+    </div>
   );
 }

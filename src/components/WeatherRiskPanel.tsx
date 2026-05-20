@@ -1,4 +1,5 @@
 import { CloudRain, Wind } from "lucide-react";
+import { hasApiKey } from "../services/env";
 import { useCrisisStore } from "../store/useCrisisStore";
 
 const riskColor = {
@@ -10,27 +11,31 @@ const riskColor = {
 
 export function WeatherRiskPanel() {
   const { weather, naturalEvents, isLoadingWeather, refreshWeather } = useCrisisStore();
+  const syncingLiveWeather = hasApiKey.openWeather && isLoadingWeather;
+  const scoreLabel = syncingLiveWeather ? "--" : String(weather.riskScore);
+  const scoreWidth = syncingLiveWeather ? 12 : Math.max(6, weather.riskScore);
 
   return (
     <section className="rounded-lg border border-command-line bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-start justify-between">
         <div>
-          <h2 className="text-sm font-bold text-zinc-950">Weather Risk</h2>
-          <p className="text-xs capitalize text-zinc-500">{weather.condition}</p>
+          <h2 className="text-sm font-bold text-zinc-950">Risk</h2>
+          <p className="text-xs capitalize text-zinc-500">
+            {syncingLiveWeather ? "Syncing live weather" : weather.condition}
+          </p>
         </div>
         <CloudRain className="h-5 w-5 text-blue-600" />
       </div>
 
       <div className={`mb-3 rounded border p-3 ${riskColor[weather.riskLabel]}`}>
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold">Risk score</span>
-          <span className="text-lg font-black">{weather.riskScore}</span>
+          <span className="text-xs font-semibold">
+            {syncingLiveWeather ? "Live score" : weather.riskLabel}
+          </span>
+          <span className="text-lg font-black">{scoreLabel}</span>
         </div>
         <div className="mt-2 h-2 rounded-full bg-white/70">
-          <div
-            className="h-2 rounded-full bg-current"
-            style={{ width: `${Math.max(6, weather.riskScore)}%` }}
-          />
+          <div className="h-2 rounded-full bg-current" style={{ width: `${scoreWidth}%` }} />
         </div>
       </div>
 
@@ -56,7 +61,7 @@ export function WeatherRiskPanel() {
       <div className="mt-3 rounded border border-zinc-200 bg-zinc-50 p-3">
         <div className="mb-2 flex items-center gap-2 text-xs font-bold text-zinc-700">
           <Wind className="h-4 w-4" />
-          Natural event signals
+          Signals
         </div>
         <div className="space-y-2">
           {naturalEvents.slice(0, 2).map((event) => (

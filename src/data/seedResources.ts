@@ -48,4 +48,14 @@ export const resourcesByCity: Record<CityId, Resource[]> = {
     resource("ldn", 7, "food", "Food Unit South", 51.467, -0.119, 185),
     resource("ldn", 8, "power", "Grid Repair Crew 2", 51.5155, -0.0922, 170),
   ],
+  "demo-high-risk": [
+    resource("demo", 1, "ambulance", "Ambulance Delta", 14.633, 120.988, 52),
+    resource("demo", 2, "ambulance", "Ambulance Echo", 14.573, 120.992, 48),
+    resource("demo", 3, "medical", "Rapid Medical Team", 14.604, 121.028, 76),
+    resource("demo", 4, "medical", "Respiratory Response Team", 14.592, 120.944, 68),
+    resource("demo", 5, "supply", "High-Water Supply Convoy", 14.622, 121.003, 210),
+    resource("demo", 6, "volunteer", "Evacuation Team A", 14.565, 121.018, 135),
+    resource("demo", 7, "food", "Emergency Food Unit", 14.648, 120.958, 185),
+    resource("demo", 8, "power", "Mobile Power Crew", 14.612, 120.952, 165),
+  ],
 };

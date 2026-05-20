@@ -93,6 +93,23 @@ const seededWeather: Record<City["id"], Omit<WeatherSnapshot, "updatedAt">> = {
       roadBlockProbability: 0.08,
     },
   },
+  "demo-high-risk": {
+    cityName: "Demo - High Risk Score",
+    source: "seed",
+    condition: "Extreme rain, gale winds, hazardous haze",
+    temperatureC: 36,
+    windKph: 82,
+    rainMm: 42,
+    airQualityIndex: 205,
+    humidity: 91,
+    riskScore: 100,
+    riskLabel: "Severe",
+    modifiers: {
+      floodSeverity: 0.35,
+      medicalDemand: 0.25,
+      roadBlockProbability: 0.35,
+    },
+  },
 };
 
 const toAqiIndex = (openWeatherAqi: number | undefined) => {
@@ -107,6 +124,7 @@ export const getSeedWeather = (city: City): WeatherSnapshot => ({
 });
 
 export const fetchWeather = async (city: City): Promise<WeatherSnapshot> => {
+  if (city.id === "demo-high-risk") return getSeedWeather(city);
   if (!hasApiKey.openWeather) return getSeedWeather(city);
 
   try {

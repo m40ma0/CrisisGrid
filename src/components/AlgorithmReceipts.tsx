@@ -15,15 +15,15 @@ export function AlgorithmReceipts() {
     <section className="rounded-lg border border-command-line bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-bold text-zinc-950">Algorithm Receipts</h2>
-          <p className="text-xs text-zinc-500">Optimization proof trail</p>
+          <h2 className="text-sm font-bold text-zinc-950">Proof Trail</h2>
+          <p className="text-xs text-zinc-500">Why the plan is defensible</p>
         </div>
         <Binary className="h-5 w-5 text-zinc-900" />
       </div>
 
       {!dispatchPlan ? (
         <div className="rounded border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-500">
-          Receipts are generated with each plan.
+          Build a plan to see the proof trail.
         </div>
       ) : (
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-6">

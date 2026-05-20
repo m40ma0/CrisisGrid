@@ -30,6 +30,61 @@ const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const initialCity = cities[0];
 const initialScenario = scenarios[0];
 
+const createDemoHighRiskIncidents = (): Incident[] => [
+  {
+    id: "demo-flood-1",
+    type: "flood",
+    title: "River surge evacuation zone",
+    location: { lat: 14.61, lng: 120.982 },
+    severity: 96,
+    baseSeverity: 96,
+    peopleAffected: 1250,
+    urgency: "critical",
+    requiredResources: { ambulance: 1, medical: 1, supply: 1, volunteer: 1, food: 1 },
+    status: "open",
+    coveredPeople: 0,
+  },
+  {
+    id: "demo-medical-1",
+    type: "medical",
+    title: "Heat and haze triage surge",
+    location: { lat: 14.579, lng: 121.015 },
+    severity: 88,
+    baseSeverity: 88,
+    peopleAffected: 640,
+    urgency: "critical",
+    requiredResources: { ambulance: 1, medical: 2, supply: 1 },
+    status: "open",
+    coveredPeople: 0,
+  },
+  {
+    id: "demo-blackout-1",
+    type: "blackout",
+    title: "Pump station power failure",
+    location: { lat: 14.642, lng: 120.954 },
+    severity: 81,
+    baseSeverity: 81,
+    peopleAffected: 820,
+    urgency: "high",
+    requiredResources: { power: 1, supply: 1, volunteer: 1 },
+    status: "open",
+    coveredPeople: 0,
+  },
+  {
+    id: "demo-fire-1",
+    type: "fire",
+    title: "Substation fire exposure",
+    location: { lat: 14.622, lng: 121.028 },
+    severity: 74,
+    baseSeverity: 74,
+    peopleAffected: 260,
+    urgency: "high",
+    requiredResources: { ambulance: 1, medical: 1, power: 1 },
+    status: "open",
+    coveredPeople: 0,
+  },
+];
+
 const buildApiStatus = (
   weather: WeatherSnapshot,
   naturalEvents: NaturalEvent[],
@@ -79,10 +134,15 @@ type CrisisState = {
 
 const createScenarioState = (city: City, scenarioId: ScenarioId, weather: WeatherSnapshot) => {
   const scenario = getScenarioById(scenarioId);
+  const sourceIncidents =
+    city.id === "demo-high-risk"
+      ? createDemoHighRiskIncidents()
+      : clone(scenario.incidents[city.id] ?? scenario.incidents.singapore ?? []);
+
   return {
     facilities: clone(facilitiesByCity[city.id]),
     resources: clone(resourcesByCity[city.id]),
-    incidents: applyWeatherToIncidents(clone(scenario.incidents[city.id]), weather),
+    incidents: applyWeatherToIncidents(sourceIncidents, weather),
   };
 };
 
@@ -102,7 +162,7 @@ export const useCrisisStore = create<CrisisState>()(
       disruptionLog: [],
       routesReplanned: 0,
       apiStatus: buildApiStatus(getSeedWeather(initialCity), [], false),
-      isLoadingWeather: false,
+      isLoadingWeather: hasApiKey.openWeather,
       isGeneratingPlan: false,
       isGeneratingBriefing: false,
 
@@ -112,19 +172,22 @@ export const useCrisisStore = create<CrisisState>()(
 
       selectCity: async (cityId) => {
         const city = getCityById(cityId);
-        const weather = getSeedWeather(city);
-        const scenarioState = createScenarioState(city, get().selectedScenarioId, weather);
+        const seedWeather = getSeedWeather(city);
+        const shouldFetchLiveWeather = hasApiKey.openWeather && city.id !== "demo-high-risk";
+        const displayWeather = shouldFetchLiveWeather ? get().weather : seedWeather;
+        const scenarioState = createScenarioState(city, get().selectedScenarioId, displayWeather);
 
         set({
           selectedCity: city,
-          weather,
+          weather: displayWeather,
           ...scenarioState,
           roadClosures: [],
           dispatchPlan: null,
           briefing: [],
           disruptionLog: [],
           routesReplanned: 0,
-          apiStatus: buildApiStatus(weather, [], false),
+          isLoadingWeather: shouldFetchLiveWeather,
+          apiStatus: buildApiStatus(displayWeather, [], false),
         });
 
         await get().refreshWeather();
@@ -161,7 +224,8 @@ export const useCrisisStore = create<CrisisState>()(
 
       refreshWeather: async () => {
         const { selectedCity, selectedScenarioId } = get();
-        set({ isLoadingWeather: true });
+        const shouldFetchLiveWeather = hasApiKey.openWeather && selectedCity.id !== "demo-high-risk";
+        set({ isLoadingWeather: shouldFetchLiveWeather });
 
         const [weather, naturalEvents] = await Promise.all([
           fetchWeather(selectedCity),

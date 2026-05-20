@@ -40,9 +40,27 @@ const seededEvents: Record<City["id"], NaturalEvent[]> = {
       distanceKm: 16,
     },
   ],
+  "demo-high-risk": [
+    {
+      id: "seed-demo-cyclone",
+      title: "Demo severe storm and flood cascade",
+      category: "Severe Storms",
+      source: "seed",
+      distanceKm: 6,
+    },
+    {
+      id: "seed-demo-haze",
+      title: "Demo hazardous air quality plume",
+      category: "Air Quality",
+      source: "seed",
+      distanceKm: 12,
+    },
+  ],
 };
 
 export const fetchNaturalEvents = async (city: City): Promise<NaturalEvent[]> => {
+  if (city.id === "demo-high-risk") return seededEvents[city.id];
+
   try {
     const url = new URL("https://eonet.gsfc.nasa.gov/api/v3/events");
     url.searchParams.set("status", "open");

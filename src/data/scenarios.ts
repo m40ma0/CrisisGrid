@@ -24,7 +24,7 @@ const incident = (
   coveredPeople: 0,
 });
 
-const byCity = (scenario: ScenarioId): Record<CityId, Incident[]> => {
+const byCity = (scenario: ScenarioId): Partial<Record<CityId, Incident[]>> => {
   if (scenario === "central-flood") {
     return {
       singapore: [

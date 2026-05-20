@@ -3,7 +3,7 @@ export type GeoPoint = {
   lng: number;
 };
 
-export type CityId = "singapore" | "new-york" | "london";
+export type CityId = "singapore" | "new-york" | "london" | "demo-high-risk";
 
 export type Urgency = "critical" | "high" | "medium" | "low";
 
@@ -179,7 +179,7 @@ export type ScenarioDefinition = {
   name: string;
   description: string;
   trackFit: string[];
-  incidents: Record<CityId, Incident[]>;
+  incidents: Partial<Record<CityId, Incident[]>>;
 };
 
 export type BriefingPayload = {

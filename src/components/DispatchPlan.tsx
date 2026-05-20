@@ -14,7 +14,7 @@ export function DispatchPlan() {
     <section className="rounded-lg border border-command-line bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-bold text-zinc-950">Dispatch Plan</h2>
+          <h2 className="text-sm font-bold text-zinc-950">Plan</h2>
           <p className="text-xs text-zinc-500">
             {dispatchPlan ? `${dispatchPlan.assignments.length} assignments` : "No plan generated"}
           </p>
@@ -24,7 +24,7 @@ export function DispatchPlan() {
 
       {!dispatchPlan ? (
         <div className="rounded border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-500">
-          The optimizer output will appear here.
+          Build a response plan first.
         </div>
       ) : (
         <div className="max-h-[360px] space-y-2 overflow-auto pr-1 scrollbar-thin">

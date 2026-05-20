@@ -76,8 +76,9 @@ Gemini receives the optimizer output as JSON and only summarizes it. It is inten
 
 - Real map command center.
 - Fallback map if the hosted map style is unavailable.
-- Preset city selector for Singapore, New York, and London.
-- Preset city search for Singapore, New York, and London.
+- Preset city selector for Singapore, New York, London, and Demo - High Risk Score.
+- Preset city search for the included command areas.
+- Demo - High Risk Score uses deterministic severe weather for judging and rehearsals.
 - Scenario selector:
   - Central District Flood
   - Hospital Fire Surge
@@ -121,15 +122,13 @@ npm run build
 ## Demo Flow
 
 1. Open CrisisGrid.
-2. Select Singapore, New York, or London.
-3. Choose Downtown Multi-Incident Crisis or Central District Flood.
-4. Review weather risk and natural event signals.
-5. Click Generate Response Plan.
-6. Show algorithm receipts and before/after ETA.
-7. Review the Gemini command briefing.
-8. Click Block Road or Mark Hospital Full.
-9. Click Replan.
-10. Show changed assignments, updated receipts, and route fallbacks.
+2. Select Demo - High Risk Score for a guaranteed emergency case.
+3. Review the severe weather score and incident markers.
+4. Click Generate Response Plan.
+5. Use the tabs to show briefing, plan, impact, proof, and assets.
+6. Click Block Road or Mark Hospital Full.
+7. Click Replan.
+8. Show changed assignments, updated receipts, and route fallbacks.
 
 ## Judging Alignment
 

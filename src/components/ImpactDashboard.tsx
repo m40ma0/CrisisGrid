@@ -25,10 +25,10 @@ export function ImpactDashboard() {
   if (!dispatchPlan) {
     return (
       <section className="rounded-lg border border-command-line bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-bold text-zinc-950">Impact Dashboard</h2>
+        <h2 className="text-sm font-bold text-zinc-950">Impact</h2>
         <div className="mt-3 grid grid-cols-2 gap-2">
-          {metricCard("ETA", "--", "Awaiting optimization", Clock, "text-zinc-400")}
-          {metricCard("Covered", "--", "Awaiting optimization", Users, "text-zinc-400")}
+          {metricCard("ETA", "--", "No plan yet", Clock, "text-zinc-400")}
+          {metricCard("Covered", "--", "No plan yet", Users, "text-zinc-400")}
         </div>
       </section>
     );
