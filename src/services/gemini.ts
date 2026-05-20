@@ -1,0 +1,113 @@
+import type { BriefingPayload } from "../types/crisis";
+import { apiKeys, hasApiKey } from "./env";
+
+type GeminiResponse = {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{ text?: string }>;
+    };
+  }>;
+};
+
+const buildFallbackBriefing = (payload: BriefingPayload) => {
+  const plan = payload.plan;
+  const highest = [...payload.incidents].sort((a, b) => b.severity - a.severity)[0];
+  const resources = plan?.assignments.length ?? 0;
+  const average = plan?.metrics.averageResponseTime.toFixed(1) ?? "pending";
+  const unmet = plan?.metrics.unmetDemand ?? payload.incidents.length;
+  const covered = plan?.metrics.peopleCovered ?? 0;
+
+  return [
+    `${highest?.title ?? "Primary incident"} is the highest priority in ${payload.city.name}.`,
+    `${resources} resources are deployed by the deterministic optimizer; Gemini is explanation-only.`,
+    `Projected average response time is ${average} minutes after assignment.`,
+    `${covered} residents are covered, with ${unmet} remaining unmet resource units.`,
+    `Main operational risk: ${payload.weather.riskLabel.toLowerCase()} weather risk and capacity pressure at critical facilities.`,
+  ];
+};
+
+const buildPrompt = (payload: BriefingPayload) => `You are an emergency operations analyst.
+
+Summarize this dispatch plan in 5 concise bullet points for a city emergency commander.
+
+Include:
+- most urgent incident
+- resources deployed
+- expected improvement
+- remaining unmet demand
+- one operational risk
+
+Do not invent numbers. Use only the JSON provided.
+Do not make dispatch decisions. The JSON plan was produced by a deterministic optimizer.
+
+JSON:
+${JSON.stringify(payload, null, 2)}`;
+
+const parseBullets = (text: string) =>
+  text
+    .split("\n")
+    .map((line) => line.replace(/^[-*]\s*/, "").trim())
+    .filter(Boolean)
+    .slice(0, 5);
+
+const callGeminiDirect = async (payload: BriefingPayload) => {
+  const response = await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKeys.gemini,
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [{ text: buildPrompt(payload) }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 450,
+        },
+      }),
+    },
+  );
+
+  if (!response.ok) throw new Error("Gemini direct request failed");
+  const data = (await response.json()) as GeminiResponse;
+  const text = data.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("\n");
+
+  return parseBullets(text ?? "");
+};
+
+const callGeminiProxy = async (payload: BriefingPayload) => {
+  const response = await fetch("/api/briefing", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) throw new Error("Gemini proxy request failed");
+  const data = (await response.json()) as { bullets?: string[] };
+  return data.bullets?.slice(0, 5) ?? [];
+};
+
+export const generateBriefing = async (payload: BriefingPayload): Promise<string[]> => {
+  try {
+    const proxyBullets = await callGeminiProxy(payload);
+    if (proxyBullets.length) return proxyBullets;
+  } catch {
+    // Local Vite development usually has no /api proxy; direct mode or fallback handles it.
+  }
+
+  if (hasApiKey.gemini) {
+    try {
+      const directBullets = await callGeminiDirect(payload);
+      if (directBullets.length) return directBullets;
+    } catch {
+      return buildFallbackBriefing(payload);
+    }
+  }
+
+  return buildFallbackBriefing(payload);
+};
