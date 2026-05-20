@@ -1,9 +1,13 @@
+import "maplibre-gl/dist/maplibre-gl.css";
+
 import { Loader2, MapPinned } from "lucide-react";
+import maplibregl, { type Map as MapLibreMap, type Marker as MapLibreMarker } from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { loadGoogleMaps } from "../services/googleMaps";
 import { resolveVisibleRoute } from "../services/routing";
 import { useCrisisStore } from "../store/useCrisisStore";
 import type { Facility, GeoPoint, Incident, Resource } from "../types/crisis";
+
+const OPENFREEMAP_STYLE = "https://tiles.openfreemap.org/styles/liberty";
 
 const incidentColor: Record<Incident["urgency"], string> = {
   critical: "#dc2626",
@@ -27,14 +31,6 @@ const resourceColor: Record<Resource["type"], string> = {
   power: "#9333ea",
 };
 
-const iconSvg = (color: string, label: string) =>
-  `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">
-      <circle cx="17" cy="17" r="13" fill="${color}" stroke="white" stroke-width="3"/>
-      <text x="17" y="21" text-anchor="middle" font-family="Arial" font-size="11" font-weight="700" fill="white">${label}</text>
-    </svg>`,
-  )}`;
-
 const project = (point: GeoPoint, center: GeoPoint) => {
   const latSpan = 0.24;
   const lngSpan = 0.28;
@@ -42,6 +38,30 @@ const project = (point: GeoPoint, center: GeoPoint) => {
     left: `${Math.max(4, Math.min(96, 50 + ((point.lng - center.lng) / lngSpan) * 100))}%`,
     top: `${Math.max(4, Math.min(96, 50 - ((point.lat - center.lat) / latSpan) * 100))}%`,
   };
+};
+
+const lngLat = (point: GeoPoint): [number, number] => [point.lng, point.lat];
+
+const safeId = (value: string) => value.replace(/[^a-zA-Z0-9-_]/g, "-");
+
+const routeColor = (mode: string) => (mode === "osrm" ? "#7c3aed" : "#f97316");
+
+const createMarkerElement = (color: string, label: string, pulse = false) => {
+  const element = document.createElement("div");
+  element.className = pulse ? "marker-pulse" : "";
+  element.style.width = "32px";
+  element.style.height = "32px";
+  element.style.borderRadius = "9999px";
+  element.style.background = color;
+  element.style.border = "3px solid white";
+  element.style.boxShadow = "0 10px 20px rgba(15, 23, 42, 0.25)";
+  element.style.color = "white";
+  element.style.display = "grid";
+  element.style.placeItems = "center";
+  element.style.fontSize = "11px";
+  element.style.fontWeight = "900";
+  element.textContent = label;
+  return element;
 };
 
 function FallbackMarker({
@@ -98,8 +118,8 @@ function FallbackRoute({
         x2={`${x2}%`}
         y2={`${y2}%`}
         stroke={color}
-        strokeWidth="3"
         strokeDasharray="8 8"
+        strokeWidth="3"
         opacity="0.75"
       />
     </svg>
@@ -114,17 +134,14 @@ export function CrisisMap() {
     incidents,
     dispatchPlan,
     roadClosures,
-    apiStatus,
     updateAssignmentRoute,
   } = useCrisisStore();
   const mapNode = useRef<HTMLDivElement | null>(null);
-  const map = useRef<google.maps.Map | null>(null);
-  const markers = useRef<google.maps.Marker[]>([]);
-  const polylines = useRef<google.maps.Polyline[]>([]);
+  const map = useRef<MapLibreMap | null>(null);
+  const markers = useRef<MapLibreMarker[]>([]);
+  const routeIds = useRef<string[]>([]);
   const resolvedPlanId = useRef<string | null>(null);
-  const [mapState, setMapState] = useState<"loading" | "live" | "fallback">(
-    apiStatus.googleMaps === "live" ? "loading" : "fallback",
-  );
+  const [mapState, setMapState] = useState<"loading" | "live" | "fallback">("loading");
 
   const selectedResources = useMemo(
     () =>
@@ -136,65 +153,74 @@ export function CrisisMap() {
   );
 
   useEffect(() => {
-    if (apiStatus.googleMaps !== "live" || !mapNode.current) {
+    if (!mapNode.current || map.current) return;
+
+    const timeout = window.setTimeout(() => setMapState("fallback"), 7000);
+
+    try {
+      map.current = new maplibregl.Map({
+        container: mapNode.current,
+        style: OPENFREEMAP_STYLE,
+        center: lngLat(selectedCity.center),
+        zoom: selectedCity.zoom,
+        attributionControl: false,
+      });
+
+      map.current.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+      map.current.addControl(
+        new maplibregl.AttributionControl({ compact: true, customAttribution: "OpenFreeMap" }),
+        "bottom-right",
+      );
+
+      map.current.once("load", () => {
+        window.clearTimeout(timeout);
+        setMapState("live");
+      });
+
+      map.current.once("error", () => {
+        window.clearTimeout(timeout);
+        setMapState("fallback");
+      });
+    } catch {
+      window.clearTimeout(timeout);
       setMapState("fallback");
-      return;
     }
 
-    let cancelled = false;
-    void loadGoogleMaps()
-      .then(() => {
-        if (cancelled || !mapNode.current) return;
-        if (!map.current) {
-          map.current = new google.maps.Map(mapNode.current, {
-            center: selectedCity.center,
-            zoom: selectedCity.zoom,
-            disableDefaultUI: true,
-            zoomControl: true,
-            styles: [
-              { featureType: "poi", stylers: [{ visibility: "off" }] },
-              { featureType: "transit", stylers: [{ visibility: "off" }] },
-            ],
-          });
-        }
-        setMapState("live");
-      })
-      .catch(() => setMapState("fallback"));
-
     return () => {
-      cancelled = true;
+      window.clearTimeout(timeout);
+      markers.current.forEach((marker) => marker.remove());
+      markers.current = [];
+      map.current?.remove();
+      map.current = null;
     };
-  }, [apiStatus.googleMaps, selectedCity.center, selectedCity.zoom]);
+  }, [selectedCity.center, selectedCity.zoom]);
 
   useEffect(() => {
     if (!map.current || mapState !== "live") return;
-    map.current.setCenter(selectedCity.center);
-    map.current.setZoom(selectedCity.zoom);
-  }, [mapState, selectedCity]);
+    map.current.flyTo({
+      center: lngLat(selectedCity.center),
+      zoom: selectedCity.zoom,
+      duration: 650,
+      essential: true,
+    });
+  }, [mapState, selectedCity.center, selectedCity.zoom]);
 
   useEffect(() => {
     if (!map.current || mapState !== "live") return;
 
-    markers.current.forEach((marker) => marker.setMap(null));
+    markers.current.forEach((marker) => marker.remove());
     markers.current = [];
 
-    const addMarker = (point: GeoPoint, color: string, label: string, title: string) => {
-      markers.current.push(
-        new google.maps.Marker({
-          position: point,
-          map: map.current,
-          title,
-          icon: {
-            url: iconSvg(color, label),
-            scaledSize: new google.maps.Size(34, 34),
-            anchor: new google.maps.Point(17, 17),
-          },
-        }),
-      );
+    const addMarker = (point: GeoPoint, color: string, label: string, title: string, pulse = false) => {
+      const marker = new maplibregl.Marker({ element: createMarkerElement(color, label, pulse) })
+        .setLngLat(lngLat(point))
+        .setPopup(new maplibregl.Popup({ offset: 18 }).setText(title))
+        .addTo(map.current!);
+      markers.current.push(marker);
     };
 
     incidents.forEach((incident) =>
-      addMarker(incident.location, incidentColor[incident.urgency], "I", incident.title),
+      addMarker(incident.location, incidentColor[incident.urgency], "I", incident.title, incident.urgency === "critical"),
     );
     resources.forEach((resource) =>
       addMarker(
@@ -205,11 +231,16 @@ export function CrisisMap() {
       ),
     );
     facilities.forEach((facility) =>
-      addMarker(facility.location, facility.offline ? "#dc2626" : facilityColor[facility.type], "F", facility.name),
+      addMarker(
+        facility.location,
+        facility.offline ? "#dc2626" : facilityColor[facility.type],
+        "F",
+        facility.name,
+      ),
     );
 
     return () => {
-      markers.current.forEach((marker) => marker.setMap(null));
+      markers.current.forEach((marker) => marker.remove());
       markers.current = [];
     };
   }, [facilities, incidents, mapState, resources, selectedResources]);
@@ -217,27 +248,75 @@ export function CrisisMap() {
   useEffect(() => {
     if (!map.current || mapState !== "live") return;
 
-    polylines.current.forEach((polyline) => polyline.setMap(null));
-    polylines.current = [];
+    routeIds.current.forEach((id) => {
+      if (map.current?.getLayer(`${id}-layer`)) map.current.removeLayer(`${id}-layer`);
+      if (map.current?.getSource(id)) map.current.removeSource(id);
+    });
+    routeIds.current = [];
 
     dispatchPlan?.assignments.forEach((assignment) => {
-      const color = assignment.route.mode === "google-directions" ? "#2563eb" : assignment.route.mode === "osrm" ? "#7c3aed" : "#f97316";
-      polylines.current.push(
-        new google.maps.Polyline({
-          map: map.current,
-          path: assignment.route.path,
-          strokeColor: color,
-          strokeOpacity: 0.82,
-          strokeWeight: 4,
-        }),
-      );
+      if (assignment.route.path.length < 2) return;
+
+      const id = `route-${safeId(assignment.id)}`;
+      routeIds.current.push(id);
+      map.current!.addSource(id, {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "LineString",
+            coordinates: assignment.route.path.map(lngLat),
+          },
+        },
+      });
+      map.current!.addLayer({
+        id: `${id}-layer`,
+        type: "line",
+        source: id,
+        paint: {
+          "line-color": routeColor(assignment.route.mode),
+          "line-width": 4,
+          "line-opacity": 0.82,
+        },
+      });
+    });
+
+    roadClosures.forEach((closure) => {
+      const id = `closure-${safeId(closure.id)}`;
+      routeIds.current.push(id);
+      map.current!.addSource(id, {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "LineString",
+            coordinates: [lngLat(closure.from), lngLat(closure.to)],
+          },
+        },
+      });
+      map.current!.addLayer({
+        id: `${id}-layer`,
+        type: "line",
+        source: id,
+        paint: {
+          "line-color": "#dc2626",
+          "line-width": 5,
+          "line-opacity": 0.75,
+          "line-dasharray": [1, 1.4],
+        },
+      });
     });
 
     return () => {
-      polylines.current.forEach((polyline) => polyline.setMap(null));
-      polylines.current = [];
+      routeIds.current.forEach((id) => {
+        if (map.current?.getLayer(`${id}-layer`)) map.current.removeLayer(`${id}-layer`);
+        if (map.current?.getSource(id)) map.current.removeSource(id);
+      });
+      routeIds.current = [];
     };
-  }, [dispatchPlan, mapState]);
+  }, [dispatchPlan, mapState, roadClosures]);
 
   useEffect(() => {
     if (!dispatchPlan || resolvedPlanId.current === dispatchPlan.id) return;
@@ -251,9 +330,11 @@ export function CrisisMap() {
       const incident = incidentsById.get(assignment.incidentId);
       if (!resource || !incident) return;
 
-      void resolveVisibleRoute(resource.location, incident.location, selectedCity.averageSpeedKmh).then((route) => {
-        updateAssignmentRoute(assignment.id, route);
-      });
+      void resolveVisibleRoute(resource.location, incident.location, selectedCity.averageSpeedKmh).then(
+        (route) => {
+          updateAssignmentRoute(assignment.id, route);
+        },
+      );
     });
   }, [dispatchPlan, incidents, resources, selectedCity.averageSpeedKmh, updateAssignmentRoute]);
 
@@ -276,7 +357,7 @@ export function CrisisMap() {
           <span className="text-sm font-black text-zinc-950">{selectedCity.name}</span>
         </div>
         <p className="text-xs text-zinc-500">
-          {mapState === "live" ? "Google Maps live" : "Fallback map"} · {incidents.length} incidents
+          {mapState === "live" ? "MapLibre + OpenFreeMap" : "Fallback map"} · {incidents.length} incidents
         </p>
       </div>
 
@@ -298,7 +379,7 @@ export function CrisisMap() {
                 from={route.from}
                 to={route.to}
                 center={selectedCity.center}
-                color={route.mode === "haversine" ? "#f97316" : "#2563eb"}
+                color={routeColor(route.mode)}
               />
             ) : null,
           )}

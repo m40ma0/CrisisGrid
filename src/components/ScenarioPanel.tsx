@@ -64,14 +64,14 @@ export function ScenarioPanel() {
       </select>
 
       <label className="mb-2 block text-xs font-semibold text-zinc-600" htmlFor="city-search">
-        City or district search
+        Preset city search
       </label>
       <div className="flex gap-2">
         <input
           id="city-search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Singapore CBD"
+          placeholder="Singapore"
           className="min-w-0 flex-1 rounded border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm outline-none focus:border-blue-500"
         />
         <button
@@ -86,7 +86,7 @@ export function ScenarioPanel() {
       </div>
       {searchState !== "idle" && (
         <p className={`mt-2 text-xs ${searchState === "found" ? "text-emerald-700" : "text-amber-700"}`}>
-          {searchState === "found" ? "Map context updated." : "Using preset city context."}
+          {searchState === "found" ? "Map context updated." : "No preset match found."}
         </p>
       )}
     </section>

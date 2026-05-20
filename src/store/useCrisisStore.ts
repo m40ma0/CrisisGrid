@@ -23,7 +23,6 @@ import { createRoadClosure, markNearestFacilityFull, triggerDemandSpike } from "
 import { fetchNaturalEvents } from "../services/eonet";
 import { hasApiKey } from "../services/env";
 import { generateBriefing } from "../services/gemini";
-import { geocodeAddress } from "../services/googleMaps";
 import { fetchWeather, getSeedWeather } from "../services/weather";
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -36,9 +35,8 @@ const buildApiStatus = (
   naturalEvents: NaturalEvent[],
   geminiLive: boolean,
 ): ApiStatus => ({
-  googleMaps: hasApiKey.googleMaps ? "live" : "fallback",
-  geocoding: hasApiKey.googleMaps ? "live" : "fallback",
-  directions: hasApiKey.googleMaps ? "mixed" : "fallback",
+  mapLibre: "live",
+  openFreeMap: "live",
   openWeather: weather.source === "openweather" ? "live" : "fallback",
   gemini: geminiLive || hasApiKey.gemini ? "mixed" : "fallback",
   nasaEonet: naturalEvents.some((event) => event.source === "nasa-eonet") ? "live" : "fallback",
@@ -155,20 +153,6 @@ export const useCrisisStore = create<CrisisState>()(
 
         if (matched) {
           await get().selectCity(matched.id);
-          return true;
-        }
-
-        const point = await geocodeAddress(query);
-        if (point) {
-          const current = get().selectedCity;
-          set({
-            selectedCity: {
-              ...current,
-              name: query.trim(),
-              center: point,
-              zoom: 13,
-            },
-          });
           return true;
         }
 

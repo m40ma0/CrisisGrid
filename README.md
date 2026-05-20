@@ -23,9 +23,8 @@ CrisisGrid helps a commander:
 - Zustand
 - Recharts
 - lucide-react
-- Google Maps JavaScript API
-- Google Maps Geocoding service
-- Google Directions service for final visible routes only
+- MapLibre GL JS
+- OpenFreeMap hosted map style and tiles
 - OpenWeatherMap current weather and air pollution APIs
 - Gemini API for command briefings
 - NASA EONET natural events API
@@ -37,18 +36,11 @@ CrisisGrid works in fallback mode without API keys.
 
 For the full demo:
 
-1. Create a Google Maps Platform API key.
-2. Enable Maps JavaScript API.
-3. Enable Geocoding API if using city/address search.
-4. Enable Directions API if using Google route overlays.
-5. Restrict the Google key to localhost and your deployed domain.
-6. Set quotas and disable unused APIs.
-7. Create an OpenWeatherMap free API key.
-8. Create a Gemini API key in Google AI Studio.
-9. Copy `.env.example` to `.env` and fill in the values.
+1. Create an OpenWeatherMap free API key.
+2. Create a Gemini API key in Google AI Studio.
+3. Copy `.env.example` to `.env` and fill in the values.
 
 ```bash
-VITE_GOOGLE_MAPS_API_KEY=
 VITE_OPENWEATHER_API_KEY=
 VITE_GEMINI_API_KEY=
 
@@ -58,13 +50,12 @@ GEMINI_API_KEY=
 
 ### API Roles
 
-- Google Maps JavaScript API: city map, markers, and overlays.
-- Google Geocoding: city/district search when a Maps key is present.
-- Google Directions: final selected routes only, never candidate scoring.
+- MapLibre GL JS: browser map renderer for the command center.
+- OpenFreeMap: free hosted map style and tiles with no API key.
 - OpenWeatherMap: rain, wind, heat, humidity, and AQI risk signals.
 - Gemini: concise command briefing and plan explanation.
 - NASA EONET: near-real-time global natural event context.
-- OSRM: free routing fallback before straight-line fallback.
+- OSRM: final selected route geometry before straight-line fallback.
 
 ## Algorithms
 
@@ -84,9 +75,9 @@ Gemini receives the optimizer output as JSON and only summarizes it. It is inten
 ## Features
 
 - Real map command center.
-- Fallback map if Google Maps is unavailable.
+- Fallback map if the hosted map style is unavailable.
 - Preset city selector for Singapore, New York, and London.
-- City/district search with Google Geocoding when configured.
+- Preset city search for Singapore, New York, and London.
 - Scenario selector:
   - Central District Flood
   - Hospital Fire Surge
@@ -155,10 +146,9 @@ npm run build
 
 - Do not commit real API keys.
 - Use `.env` locally and keep it ignored by Git.
-- Restrict Google Maps keys by HTTP referrer.
 - Prefer the Vercel serverless `api/briefing.ts` proxy for Gemini in production.
-- Keep Directions calls limited to final selected routes.
-- Set Google Cloud quotas before deploying.
+- Keep OSRM calls limited to final selected routes.
+- Do not abuse public routing or tile services during load testing.
 
 ## Future Roadmap
 

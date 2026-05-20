@@ -1,8 +1,8 @@
 import { ArrowRight, Route } from "lucide-react";
 import { useCrisisStore } from "../store/useCrisisStore";
+import type { RouteMode } from "../types/crisis";
 
-const routeModeLabel = {
-  "google-directions": "Google route",
+const routeModeLabel: Record<RouteMode, string> = {
   osrm: "OSRM route",
   haversine: "Estimated route",
 };

@@ -1,6 +1,5 @@
 import type { GeoPoint, RouteEstimate } from "../types/crisis";
 import { haversineDistanceKm } from "../algorithms/scoring";
-import { getGoogleDirectionsRoute } from "./googleMaps";
 
 const decodePolyline = (encoded: string): GeoPoint[] => {
   let index = 0;
@@ -90,9 +89,6 @@ export const resolveVisibleRoute = async (
   destination: GeoPoint,
   averageSpeedKmh: number,
 ): Promise<RouteEstimate> => {
-  const googleRoute = await getGoogleDirectionsRoute(origin, destination);
-  if (googleRoute) return googleRoute;
-
   const osrmRoute = await fetchOsrmRoute(origin, destination);
   if (osrmRoute) return osrmRoute;
 

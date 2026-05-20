@@ -41,8 +41,9 @@ export function CommandCenter() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge label="Maps" mode={apiStatus.googleMaps} />
-            <StatusBadge label="Directions" mode={apiStatus.directions} />
+            <StatusBadge label="MapLibre" mode={apiStatus.mapLibre} />
+            <StatusBadge label="OpenFreeMap" mode={apiStatus.openFreeMap} />
+            <StatusBadge label="OSRM" mode={apiStatus.osrm} />
             <StatusBadge label="Weather" mode={apiStatus.openWeather} />
             <StatusBadge label="Gemini" mode={apiStatus.gemini} />
             <StatusBadge label="EONET" mode={apiStatus.nasaEonet} />

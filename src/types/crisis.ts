@@ -108,7 +108,7 @@ export type RoadClosure = {
   penaltyMultiplier: number;
 };
 
-export type RouteMode = "google-directions" | "osrm" | "haversine";
+export type RouteMode = "osrm" | "haversine";
 
 export type RouteEstimate = {
   mode: RouteMode;
@@ -194,9 +194,8 @@ export type BriefingPayload = {
 };
 
 export type ApiStatus = {
-  googleMaps: ApiMode;
-  geocoding: ApiMode;
-  directions: ApiMode;
+  mapLibre: ApiMode;
+  openFreeMap: ApiMode;
   openWeather: ApiMode;
   gemini: ApiMode;
   nasaEonet: ApiMode;
