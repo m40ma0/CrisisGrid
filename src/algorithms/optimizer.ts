@@ -29,6 +29,8 @@ const resourceLabels: Record<ResourceType, string> = {
 
 const makeAssignmentId = (resourceId: string, incidentId: string) => `${resourceId}->${incidentId}`;
 
+const formatRuntime = (runtimeMs: number) => (runtimeMs < 1000 ? "<1s" : `${(runtimeMs / 1000).toFixed(1)}s`);
+
 const requiredEntries = (incident: Incident) =>
   Object.entries(incident.requiredResources).filter(([, units]) => (units ?? 0) > 0) as Array<
     [ResourceType, number]
@@ -248,9 +250,9 @@ export const optimizeDispatch = ({
     },
     {
       id: "runtime",
-      label: "Optimization runtime",
-      value: `${Math.round(runtime)} ms`,
-      detail: "Greedy priority assignment plus a local improvement pass keeps the optimizer explainable.",
+      label: "Simulation runtime",
+      value: formatRuntime(runtime),
+      detail: "Greedy priority assignment plus local improvement keeps decisions explainable.",
       tone: runtime < 100 ? "good" : "neutral",
     },
   ];

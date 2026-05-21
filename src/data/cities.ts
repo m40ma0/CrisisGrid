@@ -30,8 +30,8 @@ export const cities: City[] = [
   },
   {
     id: "demo-high-risk",
-    name: "Demo - High Risk Score",
-    country: "Simulation",
+    name: "Manila Demo - High Risk",
+    country: "Philippines",
     center: { lat: 14.5995, lng: 120.9842 },
     zoom: 11,
     averageSpeedKmh: 24,

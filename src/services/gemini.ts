@@ -9,7 +9,7 @@ type GeminiResponse = {
   }>;
 };
 
-const buildFallbackBriefing = (payload: BriefingPayload) => {
+export const buildFallbackBriefing = (payload: BriefingPayload) => {
   const plan = payload.plan;
   const highest = [...payload.incidents].sort((a, b) => b.severity - a.severity)[0];
   const resources = plan?.assignments.length ?? 0;

@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import type {
   ApiStatus,
   Assignment,
@@ -22,7 +21,7 @@ import { optimizeDispatch } from "../algorithms/optimizer";
 import { createRoadClosure, markNearestFacilityFull, triggerDemandSpike } from "../algorithms/replanner";
 import { fetchNaturalEvents } from "../services/eonet";
 import { hasApiKey } from "../services/env";
-import { generateBriefing } from "../services/gemini";
+import { buildFallbackBriefing, generateBriefing } from "../services/gemini";
 import { fetchWeather, getSeedWeather } from "../services/weather";
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -119,6 +118,7 @@ type CrisisState = {
   isGeneratingBriefing: boolean;
   hasInitialized: boolean;
   isRunningJudgeDemo: boolean;
+  judgeDemoStep: number;
   initialize: () => Promise<void>;
   selectCity: (cityId: City["id"]) => Promise<void>;
   selectScenario: (scenarioId: ScenarioId) => Promise<void>;
@@ -150,8 +150,7 @@ const createScenarioState = (city: City, scenarioId: ScenarioId, weather: Weathe
 };
 
 export const useCrisisStore = create<CrisisState>()(
-  persist(
-    (set, get) => ({
+  (set, get) => ({
       cities,
       scenarios,
       selectedCity: initialCity,
@@ -170,6 +169,7 @@ export const useCrisisStore = create<CrisisState>()(
       isGeneratingBriefing: false,
       hasInitialized: false,
       isRunningJudgeDemo: false,
+      judgeDemoStep: 0,
 
       initialize: async () => {
         if (get().hasInitialized) return;
@@ -269,10 +269,8 @@ export const useCrisisStore = create<CrisisState>()(
           routesReplanned: 0,
         });
 
-        set({ dispatchPlan: plan, isGeneratingPlan: false, isGeneratingBriefing: true });
-
         const scenario = getScenarioById(state.selectedScenarioId);
-        const bullets = await generateBriefing({
+        const payload = {
           city: state.selectedCity,
           scenarioName: scenario.name,
           weather: state.weather,
@@ -281,13 +279,25 @@ export const useCrisisStore = create<CrisisState>()(
           resources: state.resources,
           plan,
           disruptions: state.disruptionLog,
+        };
+
+        set({
+          dispatchPlan: plan,
+          briefing: buildFallbackBriefing(payload),
+          isGeneratingPlan: false,
+          isGeneratingBriefing: true,
         });
 
-        set((current) => ({
-          briefing: bullets,
-          isGeneratingBriefing: false,
-          apiStatus: buildApiStatus(current.weather, current.naturalEvents, hasApiKey.gemini),
-        }));
+        void generateBriefing(payload).then((bullets) => {
+          set((current) => {
+            if (current.dispatchPlan?.id !== plan.id) return current;
+            return {
+              briefing: bullets,
+              isGeneratingBriefing: false,
+              apiStatus: buildApiStatus(current.weather, current.naturalEvents, hasApiKey.gemini),
+            };
+          });
+        });
       },
 
       replan: async () => {
@@ -306,10 +316,8 @@ export const useCrisisStore = create<CrisisState>()(
           routesReplanned: state.routesReplanned + 1,
         });
 
-        set({ dispatchPlan: plan, isGeneratingPlan: false, isGeneratingBriefing: true });
-
         const scenario = getScenarioById(state.selectedScenarioId);
-        const bullets = await generateBriefing({
+        const payload = {
           city: state.selectedCity,
           scenarioName: scenario.name,
           weather: state.weather,
@@ -318,13 +326,25 @@ export const useCrisisStore = create<CrisisState>()(
           resources: state.resources,
           plan,
           disruptions: state.disruptionLog,
+        };
+
+        set({
+          dispatchPlan: plan,
+          briefing: buildFallbackBriefing(payload),
+          isGeneratingPlan: false,
+          isGeneratingBriefing: true,
         });
 
-        set((current) => ({
-          briefing: bullets,
-          isGeneratingBriefing: false,
-          apiStatus: buildApiStatus(current.weather, current.naturalEvents, hasApiKey.gemini),
-        }));
+        void generateBriefing(payload).then((bullets) => {
+          set((current) => {
+            if (current.dispatchPlan?.id !== plan.id) return current;
+            return {
+              briefing: bullets,
+              isGeneratingBriefing: false,
+              apiStatus: buildApiStatus(current.weather, current.naturalEvents, hasApiKey.gemini),
+            };
+          });
+        });
       },
 
       updateAssignmentRoute: (assignmentId, route) => {
@@ -395,7 +415,8 @@ export const useCrisisStore = create<CrisisState>()(
       },
 
       runJudgeDemo: async () => {
-        set({ isRunningJudgeDemo: true });
+        const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+        set({ isRunningJudgeDemo: true, judgeDemoStep: 1 });
 
         const demoCity = getCityById("demo-high-risk");
         const demoWeather = getSeedWeather(demoCity);
@@ -423,12 +444,22 @@ export const useCrisisStore = create<CrisisState>()(
           apiStatus: buildApiStatus(demoWeather, [], false),
         });
 
+        await wait(350);
+        set({ judgeDemoStep: 2 });
+        await wait(300);
+        set({ judgeDemoStep: 3 });
         await get().generatePlan();
+        await wait(350);
+        set({ judgeDemoStep: 4 });
         get().blockRoad();
+        await wait(250);
         get().triggerDemandSpike();
         get().markHospitalFull();
+        await wait(350);
+        set({ judgeDemoStep: 5 });
         await get().replan();
-        set({ isRunningJudgeDemo: false });
+        await wait(250);
+        set({ isRunningJudgeDemo: false, judgeDemoStep: 6 });
       },
 
       resetScenario: async () => {
@@ -443,13 +474,4 @@ export const useCrisisStore = create<CrisisState>()(
         });
       },
     }),
-    {
-      name: "crisisgrid-scenario",
-      version: 2,
-      partialize: (state) => ({
-        selectedCity: state.selectedCity,
-        selectedScenarioId: state.selectedScenarioId,
-      }),
-    },
-  ),
 );

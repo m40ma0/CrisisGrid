@@ -94,7 +94,7 @@ const seededWeather: Record<City["id"], Omit<WeatherSnapshot, "updatedAt">> = {
     },
   },
   "demo-high-risk": {
-    cityName: "Demo - High Risk Score",
+    cityName: "Manila Demo - High Risk",
     source: "seed",
     condition: "Extreme rain, gale winds, hazardous haze",
     temperatureC: 36,

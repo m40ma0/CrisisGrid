@@ -30,7 +30,7 @@ const tabs: Array<{
   Icon: typeof MessageSquare;
 }> = [
   { id: "brief", label: "Brief", Icon: MessageSquare },
-  { id: "plan", label: "Plan", Icon: FileText },
+  { id: "plan", label: "Dispatch", Icon: FileText },
   { id: "impact", label: "Impact", Icon: BarChart3 },
   { id: "proof", label: "Proof", Icon: Layers3 },
   { id: "assets", label: "Assets", Icon: Truck },
@@ -43,13 +43,16 @@ export function CommandCenter() {
     dispatchPlan,
     selectedScenarioId,
     scenarios,
+    incidents,
     disruptionLog,
     runJudgeDemo,
     isRunningJudgeDemo,
+    judgeDemoStep,
   } =
     useCrisisStore();
   const scenario = scenarios.find((item) => item.id === selectedScenarioId) ?? scenarios[0];
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("brief");
+  const incidentCount = incidents.length;
 
   useEffect(() => {
     void initialize();
@@ -117,9 +120,12 @@ export function CommandCenter() {
             </p>
             <h2 className="text-lg font-black text-zinc-950">
               {dispatchPlan
-                ? `CrisisGrid optimized ${dispatchPlan.metrics.resourcesDeployed} resources across ${dispatchPlan.assignments.length ? new Set(dispatchPlan.assignments.map((item) => item.incidentId)).size : 0} incidents in ${dispatchPlan.metrics.optimizationRuntimeMs}ms.`
+                ? `CrisisGrid optimized ${dispatchPlan.metrics.resourcesDeployed} resources across ${incidentCount} incidents in ${formatRuntime(dispatchPlan.metrics.optimizationRuntimeMs)}.`
                 : "CrisisGrid is preparing the default emergency response plan."}
             </h2>
+            <p className="mt-1 text-sm text-zinc-600">
+              CrisisGrid ranks incidents, assigns limited emergency resources, and reroutes after disruptions to reduce ETA and unmet demand. Live map with a simulated disaster feed for judging.
+            </p>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">
             <BannerStat
@@ -144,16 +150,17 @@ export function CommandCenter() {
             />
           </div>
         </div>
+        <DemoTimeline step={judgeDemoStep} running={isRunningJudgeDemo} />
       </section>
 
-      <div className="mx-auto grid max-w-[1760px] gap-4 p-4 xl:grid-cols-[320px_minmax(0,1fr)_380px]">
-        <aside className="space-y-4">
+      <div className="mx-auto grid max-w-[1760px] gap-4 p-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="order-2 space-y-4 xl:order-1 xl:sticky xl:top-4 xl:self-start">
           <ScenarioPanel />
           <WeatherRiskPanel />
           <OptimizationPanel />
         </aside>
 
-        <section className="space-y-4">
+        <section className="order-1 space-y-4 xl:order-2">
           <CrisisMap />
           <div className="grid gap-3 md:grid-cols-3">
             <MiniMetric
@@ -172,11 +179,8 @@ export function CommandCenter() {
               tone={disruptionLog.length ? "text-amber-700" : "text-zinc-500"}
             />
           </div>
-        </section>
-
-        <aside className="space-y-4">
-          <div className="rounded-lg border border-[#c8d2c9] bg-white p-2 shadow-sm">
-            <div className="grid grid-cols-5 gap-1">
+          <div className="rounded-xl border border-[#c8d2c9] bg-white/95 p-2 shadow-sm backdrop-blur">
+            <div className="flex gap-1 overflow-x-auto md:grid md:grid-cols-5">
               {tabs.map(({ id, label, Icon }) => {
                 const active = activeTab === id;
                 return (
@@ -184,10 +188,10 @@ export function CommandCenter() {
                     key={id}
                     type="button"
                     onClick={() => setActiveTab(id)}
-                    className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded text-[11px] font-black transition ${
+                    className={`inline-flex h-10 min-w-[118px] shrink-0 items-center justify-center gap-2 rounded-md px-3 text-xs font-black transition md:min-w-0 ${
                       active
-                        ? "bg-[#101411] text-white"
-                        : "bg-[#f7f8f4] text-zinc-500 hover:bg-[#edf1e9] hover:text-zinc-950"
+                        ? "bg-[#101411] text-white shadow-sm"
+                        : "text-zinc-500 hover:bg-[#edf1e9] hover:text-zinc-950"
                     }`}
                   >
                     <Icon className="h-4 w-4" />
@@ -197,10 +201,50 @@ export function CommandCenter() {
               })}
             </div>
           </div>
-          {tabContent[activeTab]}
-        </aside>
+          <div className="min-h-[320px]">{tabContent[activeTab]}</div>
+        </section>
       </div>
     </main>
+  );
+}
+
+const demoSteps = [
+  "Detected",
+  "Scored",
+  "Assigned",
+  "Disrupted",
+  "Replanned",
+  "Improved",
+];
+
+function formatRuntime(ms: number) {
+  if (ms < 1000) return "<1s";
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function DemoTimeline({ step, running }: { step: number; running: boolean }) {
+  return (
+    <div className="mx-auto mt-3 max-w-[1760px] overflow-x-auto pb-1">
+      <div className="grid min-w-[640px] grid-cols-6 gap-2">
+        {demoSteps.map((label, index) => {
+          const current = step === index + 1 && running;
+          const done = step >= index + 1;
+          return (
+            <div
+              key={label}
+              className={`rounded border px-3 py-2 text-center text-[11px] font-black uppercase tracking-wide ${
+                done
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : "border-zinc-200 bg-white text-zinc-400"
+              } ${current ? "ring-2 ring-red-300" : ""}`}
+            >
+              <span className="mr-1">{index + 1}</span>
+              {label}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
