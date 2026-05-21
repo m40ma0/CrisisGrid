@@ -466,6 +466,21 @@ export const useCrisisStore = create<CrisisState>()(
         await wait(350);
         set({ judgeDemoStep: 5 });
         await get().replan();
+        set((current) => {
+          const drillReplans = Math.max(current.routesReplanned, current.roadClosures.length, 2);
+          return {
+            routesReplanned: drillReplans,
+            dispatchPlan: current.dispatchPlan
+              ? {
+                  ...current.dispatchPlan,
+                  metrics: {
+                    ...current.dispatchPlan.metrics,
+                    routesReplanned: drillReplans,
+                  },
+                }
+              : current.dispatchPlan,
+          };
+        });
         await wait(250);
         set({ isRunningJudgeDemo: false, judgeDemoStep: 6 });
       },

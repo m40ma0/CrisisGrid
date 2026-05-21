@@ -326,6 +326,7 @@ export function CrisisMap() {
   useEffect(() => {
     if (!dispatchPlan || resolvedPlanId.current === dispatchPlan.id) return;
     resolvedPlanId.current = dispatchPlan.id;
+    if (selectedCity.id === "demo-high-risk") return;
 
     const resourcesById = new Map(resources.map((resource) => [resource.id, resource]));
     const incidentsById = new Map(incidents.map((incident) => [incident.id, incident]));
@@ -341,7 +342,7 @@ export function CrisisMap() {
         },
       );
     });
-  }, [dispatchPlan, incidents, resources, selectedCity.averageSpeedKmh, updateAssignmentRoute]);
+  }, [dispatchPlan, incidents, resources, selectedCity.averageSpeedKmh, selectedCity.id, updateAssignmentRoute]);
 
   const routePairs =
     dispatchPlan?.assignments

@@ -80,26 +80,7 @@ const callGeminiDirect = async (payload: BriefingPayload) => {
   return parseBullets(text ?? "");
 };
 
-const callGeminiProxy = async (payload: BriefingPayload) => {
-  const response = await fetch("/api/briefing", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) throw new Error("Gemini proxy request failed");
-  const data = (await response.json()) as { bullets?: string[] };
-  return data.bullets?.slice(0, 5) ?? [];
-};
-
 export const generateBriefing = async (payload: BriefingPayload): Promise<string[]> => {
-  try {
-    const proxyBullets = await callGeminiProxy(payload);
-    if (proxyBullets.length) return proxyBullets;
-  } catch {
-    // Local Vite development usually has no /api proxy; direct mode or fallback handles it.
-  }
-
   if (hasApiKey.gemini) {
     try {
       const directBullets = await callGeminiDirect(payload);

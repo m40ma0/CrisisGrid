@@ -70,6 +70,7 @@ export function CommandCenter() {
     incidents,
     resources,
     facilities,
+    roadClosures,
     disruptionLog,
     runJudgeDemo,
     isRunningJudgeDemo,
@@ -100,6 +101,11 @@ export function CommandCenter() {
   const overloadedFacilities = facilities.filter(
     (facility) => facility.offline || facility.currentLoad >= facility.capacity,
   ).length;
+  const visibleRoutesReplanned = Math.max(
+    routesReplanned,
+    dispatchPlan?.metrics.routesReplanned ?? 0,
+    roadClosures.length > 0 ? roadClosures.length : 0,
+  );
 
   return (
     <main className="mission-shell min-h-screen overflow-x-hidden text-[#f7f7ee]">
@@ -123,26 +129,28 @@ export function CommandCenter() {
             </span>
           </button>
 
-          <nav className="flex min-w-0 gap-1 overflow-x-auto rounded-full border border-white/10 bg-white/[0.04] p-1">
-            {pages.map(({ id, label, Icon }) => {
-              const active = activePage === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setActivePage(id)}
-                  className={`inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-3 text-xs font-bold transition duration-300 ${
-                    active
-                      ? "bg-[#f7f7ee] text-[#080a07]"
-                      : "text-white/62 hover:bg-white/10 hover:text-white"
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {label}
-                </button>
-              );
-            })}
-          </nav>
+          <div className="nav-fade relative min-w-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
+            <nav className="nav-scroll flex min-w-0 gap-1 overflow-x-auto p-1 pr-8">
+              {pages.map(({ id, label, Icon }) => {
+                const active = activePage === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setActivePage(id)}
+                    className={`inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-3 text-xs font-bold transition duration-300 ${
+                      active
+                        ? "bg-[#f7f7ee] text-[#080a07]"
+                        : "text-white/62 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {label}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
 
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <StatusBadge label="MapLibre" mode={apiStatus.mapLibre} />
@@ -171,7 +179,7 @@ export function CommandCenter() {
           openIncidentCount={openIncidentCount}
           resources={resources.length}
           weatherRisk={weather.riskScore}
-          routesReplanned={routesReplanned}
+          routesReplanned={visibleRoutesReplanned}
         />
 
         <section key={activePage} className="page-transition mt-5">
@@ -184,6 +192,7 @@ export function CommandCenter() {
               weatherRisk={weather.riskScore}
               overloadedFacilities={overloadedFacilities}
               disruptionLog={disruptionLog}
+              routesReplanned={visibleRoutesReplanned}
               onOpenOperations={() => setActivePage("operations")}
               onOpenAnalytics={() => setActivePage("analytics")}
               onRunDrill={() => void runCrisisDrill()}
@@ -200,7 +209,7 @@ export function CommandCenter() {
           {activePage === "dispatch" && (
             <DispatchPage
               onRunDrill={() => void runCrisisDrill()}
-              routesReplanned={routesReplanned}
+              routesReplanned={visibleRoutesReplanned}
               disruptionLog={disruptionLog}
             />
           )}
@@ -208,7 +217,7 @@ export function CommandCenter() {
             <IntelligencePage
               running={isRunningJudgeDemo}
               step={judgeDemoStep}
-              routesReplanned={routesReplanned}
+              routesReplanned={visibleRoutesReplanned}
               disruptionLog={disruptionLog}
               onRunDrill={() => void runCrisisDrill()}
             />
@@ -255,6 +264,9 @@ function SystemHeader({
           {selectedCity} command area. Scenario: {scenario}. CrisisGrid ranks incidents, assigns
           limited emergency resources, and replans routes when conditions change.
         </p>
+        <p className="mt-3 w-fit rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs font-bold text-white/62">
+          Live map + deterministic optimizer + simulated emergency feed
+        </p>
       </div>
       <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-5 lg:min-w-[620px]">
         <HeaderStat label="Risk" value={weatherRisk} />
@@ -278,6 +290,7 @@ function OverviewPage({
   weatherRisk,
   overloadedFacilities,
   disruptionLog,
+  routesReplanned,
   onOpenOperations,
   onOpenAnalytics,
   onRunDrill,
@@ -289,6 +302,7 @@ function OverviewPage({
   weatherRisk: number;
   overloadedFacilities: number;
   disruptionLog: string[];
+  routesReplanned: number;
   onOpenOperations: () => void;
   onOpenAnalytics: () => void;
   onRunDrill: () => void;
@@ -298,6 +312,7 @@ function OverviewPage({
       <section className="min-w-0 space-y-4">
         <CrisisMap />
         <MissionStrip dispatchPlan={dispatchPlan} disruptionLog={disruptionLog} />
+        <OverviewProofPanel dispatchPlan={dispatchPlan} routesReplanned={routesReplanned} />
       </section>
 
       <aside className="space-y-4">
@@ -375,6 +390,97 @@ function OperationsPage({
         <MissionStrip dispatchPlan={dispatchPlan} disruptionLog={disruptionLog} />
       </section>
     </div>
+  );
+}
+
+function OverviewProofPanel({
+  dispatchPlan,
+  routesReplanned,
+}: {
+  dispatchPlan: ReturnType<typeof useCrisisStore.getState>["dispatchPlan"];
+  routesReplanned: number;
+}) {
+  const { incidents } = useCrisisStore();
+  const topIncidents = [...incidents].sort((a, b) => b.severity - a.severity).slice(0, 3);
+  const baseline = dispatchPlan?.metrics.baselineResponseTime ?? 0;
+  const optimized = dispatchPlan?.metrics.averageResponseTime ?? 0;
+  const optimizedWidth = baseline ? Math.max(8, Math.min(100, (optimized / baseline) * 100)) : 8;
+
+  return (
+    <section className="grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+      <div className="rounded border border-white/10 bg-white/[0.05] p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/45">
+              Response delta
+            </p>
+            <h2 className="mt-1 text-xl font-black">Baseline versus optimized</h2>
+          </div>
+          <BarChart3 className="h-5 w-5 text-white/42" />
+        </div>
+        <div className="mt-5 space-y-4">
+          <RouteBar
+            label="Nearest-resource dispatch"
+            value={baseline ? `${baseline}m` : "--"}
+            width={100}
+            tone="bg-white/28"
+          />
+          <RouteBar
+            label="CrisisGrid optimized"
+            value={optimized ? `${optimized}m` : "--"}
+            width={optimizedWidth}
+            tone="bg-emerald-300"
+          />
+        </div>
+        <div className="mt-5 grid grid-cols-3 gap-2">
+          <DarkMiniStat
+            label="ETA reduced"
+            value={dispatchPlan ? `${dispatchPlan.metrics.responseTimeReductionPct}%` : "--"}
+          />
+          <DarkMiniStat
+            label="Candidates"
+            value={dispatchPlan?.metrics.candidateAssignments ?? "--"}
+          />
+          <DarkMiniStat label="Replans" value={routesReplanned} />
+        </div>
+      </div>
+
+      <div className="rounded border border-white/10 bg-white/[0.05] p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/45">
+              Priority queue
+            </p>
+            <h2 className="mt-1 text-xl font-black">Highest-risk incidents</h2>
+          </div>
+          <Siren className="h-5 w-5 text-red-300" />
+        </div>
+        <div className="mt-4 grid gap-2">
+          {topIncidents.map((incident) => (
+            <div
+              key={incident.id}
+              className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded border border-white/10 bg-black/15 px-3 py-2"
+            >
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${
+                  incident.urgency === "critical" ? "bg-red-400" : "bg-amber-300"
+                }`}
+              />
+              <div className="min-w-0">
+                <div className="truncate text-sm font-black text-white/86">{incident.title}</div>
+                <div className="text-xs text-white/45">
+                  {incident.peopleAffected.toLocaleString()} affected
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-black">{incident.severity}</div>
+                <div className="text-[10px] font-black uppercase text-white/35">Score</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -647,6 +753,41 @@ function SystemTile({ label, value }: { label: string; value: number | string })
     <div className="rounded border border-[#080a07]/10 bg-[#080a07]/5 p-3">
       <div className="text-2xl font-black">{value}</div>
       <div className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#080a07]/45">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function RouteBar({
+  label,
+  value,
+  width,
+  tone,
+}: {
+  label: string;
+  value: string;
+  width: number;
+  tone: string;
+}) {
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-sm font-bold text-white/62">{label}</span>
+        <span className="text-sm font-black text-white/86">{value}</span>
+      </div>
+      <div className="h-2.5 overflow-hidden rounded-full bg-black/35">
+        <div className={`h-full rounded-full ${tone}`} style={{ width: `${width}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function DarkMiniStat({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="rounded border border-white/10 bg-black/15 px-3 py-2">
+      <div className="truncate text-lg font-black">{value}</div>
+      <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white/36">
         {label}
       </div>
     </div>
