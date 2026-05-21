@@ -302,7 +302,11 @@ export const useCrisisStore = create<CrisisState>()(
 
       replan: async () => {
         const state = get();
-        set({ isGeneratingPlan: true, routesReplanned: state.routesReplanned + 1 });
+        const nextRoutesReplanned = Math.max(
+          state.routesReplanned + 1,
+          state.roadClosures.length,
+        );
+        set({ isGeneratingPlan: true, routesReplanned: nextRoutesReplanned });
 
         const plan = optimizeDispatch({
           city: state.selectedCity,
@@ -313,7 +317,7 @@ export const useCrisisStore = create<CrisisState>()(
           weather: state.weather,
           roadClosures: state.roadClosures,
           disruptionLog: state.disruptionLog,
-          routesReplanned: state.routesReplanned + 1,
+          routesReplanned: nextRoutesReplanned,
         });
 
         const scenario = getScenarioById(state.selectedScenarioId);
@@ -373,13 +377,14 @@ export const useCrisisStore = create<CrisisState>()(
 
       blockRoad: () => {
         const state = get();
-        const topIncident = [...state.incidents].sort((a, b) => b.severity - a.severity)[0];
-        if (!topIncident) return;
+        const rankedIncidents = [...state.incidents].sort((a, b) => b.severity - a.severity);
+        const targetIncident = rankedIncidents[state.roadClosures.length % rankedIncidents.length];
+        if (!targetIncident) return;
 
         const closure = createRoadClosure(
-          `Primary corridor blocked near ${topIncident.title}`,
+          `Corridor ${state.roadClosures.length + 1} blocked near ${targetIncident.title}`,
           state.selectedCity.center,
-          topIncident.location,
+          targetIncident.location,
         );
 
         set({
@@ -453,8 +458,11 @@ export const useCrisisStore = create<CrisisState>()(
         set({ judgeDemoStep: 4 });
         get().blockRoad();
         await wait(250);
+        get().blockRoad();
+        await wait(250);
         get().triggerDemandSpike();
         get().markHospitalFull();
+        get().markShelterFull();
         await wait(350);
         set({ judgeDemoStep: 5 });
         await get().replan();

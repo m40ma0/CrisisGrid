@@ -1,7 +1,29 @@
-import { Ban, Hospital, RefreshCw, RotateCcw, Siren, TrendingUp } from "lucide-react";
+import { Ban, ChevronRight, Hospital, Play, RefreshCw, RotateCcw, Siren, TrendingUp } from "lucide-react";
+import { useState } from "react";
 import { useCrisisStore } from "../store/useCrisisStore";
 
-export function OptimizationPanel() {
+type DisruptionAction = "road" | "demand" | "hospital" | "shelter";
+
+const disruptionCopy: Record<DisruptionAction, { label: string; detail: string }> = {
+  road: {
+    label: "Block primary corridor",
+    detail: "Adds a road-closure penalty near the highest-risk incident.",
+  },
+  demand: {
+    label: "Trigger demand spike",
+    detail: "Raises medical demand and affected population at the top incident.",
+  },
+  hospital: {
+    label: "Mark hospital full",
+    detail: "Removes the highest-capacity hospital from the active plan.",
+  },
+  shelter: {
+    label: "Mark shelter full",
+    detail: "Forces the optimizer to rebalance shelter pressure.",
+  },
+};
+
+export function OptimizationPanel({ onRunCrisisDrill }: { onRunCrisisDrill?: () => void }) {
   const {
     generatePlan,
     replan,
@@ -13,88 +35,104 @@ export function OptimizationPanel() {
     isGeneratingPlan,
     dispatchPlan,
   } = useCrisisStore();
+  const [selectedDisruption, setSelectedDisruption] = useState<DisruptionAction>("road");
 
-  const actionClass =
-    "inline-flex items-center justify-center gap-2 rounded px-3 py-2 text-xs font-bold transition";
+  const applyDisruption = () => {
+    if (selectedDisruption === "road") blockRoad();
+    if (selectedDisruption === "demand") triggerDemandSpike();
+    if (selectedDisruption === "hospital") markHospitalFull();
+    if (selectedDisruption === "shelter") markShelterFull();
+  };
+
+  const selectedCopy = disruptionCopy[selectedDisruption];
 
   return (
-    <section className="rounded-lg border border-[#c8d2c9] bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-start justify-between gap-3">
+    <section className="rounded-lg border border-[#c8d2c9] bg-white p-4 text-zinc-950 shadow-sm">
+      <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-black text-zinc-950">Dispatch Console</h2>
-          <p className="text-xs text-zinc-500">Rank, assign, replan</p>
+          <p className="text-[11px] font-black uppercase tracking-wide text-zinc-500">
+            Runbook
+          </p>
+          <h2 className="mt-1 text-lg font-black text-zinc-950">Dispatch console</h2>
         </div>
-        <span className="rounded bg-[#101411] px-2 py-1 text-[10px] font-black text-white">
+        <span className="rounded-full bg-[#101411] px-3 py-1 text-[10px] font-black text-white">
           RULES
         </span>
       </div>
 
-      <button
-        type="button"
-        onClick={() => void generatePlan()}
-        className={`${actionClass} mb-2 w-full bg-red-600 text-white shadow-sm hover:bg-red-700`}
-      >
-        <Siren className="h-4 w-4" />
-        {isGeneratingPlan ? "Building plan..." : "Build Response Plan"}
-      </button>
+      {onRunCrisisDrill && (
+        <button
+          type="button"
+          onClick={onRunCrisisDrill}
+          className="mb-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-red-600 px-4 text-sm font-black text-white shadow-sm transition hover:bg-red-700"
+        >
+          <Play className="h-4 w-4" />
+          Run crisis drill
+        </button>
+      )}
 
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
-          onClick={blockRoad}
-          className={`${actionClass} border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100`}
+          onClick={() => void generatePlan()}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded border border-red-200 bg-red-50 px-3 text-xs font-black text-red-700 transition hover:bg-red-100"
         >
-          <Ban className="h-4 w-4" />
-          Block Road
+          <Siren className="h-4 w-4" />
+          {isGeneratingPlan ? "Building" : "Build"}
         </button>
-        <button
-          type="button"
-          onClick={triggerDemandSpike}
-          className={`${actionClass} border border-red-200 bg-red-50 text-red-700 hover:bg-red-100`}
-        >
-          <TrendingUp className="h-4 w-4" />
-          Demand Spike
-        </button>
-        <button
-          type="button"
-          onClick={markHospitalFull}
-          className={`${actionClass} border border-zinc-300 bg-zinc-50 text-zinc-700 hover:bg-zinc-100`}
-        >
-          <Hospital className="h-4 w-4" />
-          Hospital Full
-        </button>
-        <button
-          type="button"
-          onClick={markShelterFull}
-          className={`${actionClass} border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100`}
-        >
-          <Hospital className="h-4 w-4" />
-          Shelter Full
-        </button>
-      </div>
-
-      <div className="mt-2 grid grid-cols-2 gap-2">
         <button
           type="button"
           onClick={() => void replan()}
           disabled={!dispatchPlan}
-          className={`${actionClass} border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40`}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded border border-blue-200 bg-blue-50 px-3 text-xs font-black text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <RefreshCw className="h-4 w-4" />
           Replan
         </button>
+      </div>
+
+      <div className="mt-4 rounded-lg border border-zinc-200 bg-[#f7f8f4] p-3">
+        <label
+          className="mb-2 block text-[11px] font-black uppercase tracking-wide text-zinc-500"
+          htmlFor="disruption-action"
+        >
+          Disruption
+        </label>
+        <select
+          id="disruption-action"
+          value={selectedDisruption}
+          onChange={(event) => setSelectedDisruption(event.target.value as DisruptionAction)}
+          className="w-full rounded border border-zinc-300 bg-white px-3 py-2 text-sm font-bold outline-none focus:border-blue-500"
+        >
+          <option value="road">Block road</option>
+          <option value="demand">Demand spike</option>
+          <option value="hospital">Hospital full</option>
+          <option value="shelter">Shelter full</option>
+        </select>
+        <p className="mt-2 text-xs leading-5 text-zinc-500">{selectedCopy.detail}</p>
         <button
           type="button"
-          onClick={() => void resetScenario()}
-          className={`${actionClass} border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50`}
+          onClick={applyDisruption}
+          className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded bg-[#101411] px-3 text-xs font-black text-white transition hover:bg-zinc-800"
         >
-          <RotateCcw className="h-4 w-4" />
-          Reset
+          {selectedDisruption === "road" && <Ban className="h-4 w-4" />}
+          {selectedDisruption === "demand" && <TrendingUp className="h-4 w-4" />}
+          {(selectedDisruption === "hospital" || selectedDisruption === "shelter") && (
+            <Hospital className="h-4 w-4" />
+          )}
+          Apply: {selectedCopy.label}
+          <ChevronRight className="h-4 w-4" />
         </button>
       </div>
-      <div className="mt-3 rounded border border-zinc-200 bg-[#f7f8f4] px-3 py-2 text-[11px] leading-5 text-zinc-600">
-        Sorts incidents by risk, matches available units by ETA and resource type, then reroutes after disruption.
-      </div>
+
+      <button
+        type="button"
+        onClick={() => void resetScenario()}
+        className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-full border border-zinc-300 text-xs font-bold text-zinc-600 transition hover:bg-zinc-50"
+      >
+        <RotateCcw className="h-4 w-4" />
+        Reset scenario
+      </button>
     </section>
   );
 }

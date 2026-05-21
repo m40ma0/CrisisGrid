@@ -21,7 +21,7 @@ import {
 import { useCrisisStore } from "../store/useCrisisStore";
 
 export function ImpactDashboard() {
-  const { dispatchPlan } = useCrisisStore();
+  const { dispatchPlan, routesReplanned } = useCrisisStore();
 
   if (!dispatchPlan) {
     return (
@@ -48,16 +48,17 @@ export function ImpactDashboard() {
     { name: "Baseline", eta: metrics.baselineResponseTime, color: "#71717a" },
     { name: "Optimized", eta: metrics.averageResponseTime, color: "#2563eb" },
   ];
+  const visibleRoutesReplanned = Math.max(metrics.routesReplanned, routesReplanned);
 
   return (
-    <section className="space-y-4">
+    <section className="min-w-0 space-y-4">
       <div className="overflow-hidden rounded-xl border border-[#c8d2c9] bg-white shadow-sm">
         <div className="grid lg:grid-cols-[minmax(0,1.35fr)_360px]">
-          <div className="p-5">
+          <div className="min-w-0 p-4 sm:p-5">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div>
+              <div className="min-w-0">
                 <p className="text-[11px] font-black uppercase tracking-wide text-zinc-500">
-                  Before / After
+                  Response Delta
                 </p>
                 <h2 className="mt-1 text-2xl font-black text-zinc-950">
                   Dispatch impact made visible
@@ -68,7 +69,7 @@ export function ImpactDashboard() {
               </span>
             </div>
 
-            <div className="mt-6 grid grid-cols-[minmax(0,1fr)_44px_minmax(0,1fr)] items-stretch gap-3">
+            <div className="mt-6 grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_44px_minmax(0,1fr)] sm:items-stretch">
               <ComparisonBlock
                 label="Baseline ETA"
                 value={`${metrics.baselineResponseTime}m`}
@@ -77,7 +78,7 @@ export function ImpactDashboard() {
               />
               <div className="grid place-items-center">
                 <span className="grid h-10 w-10 place-items-center rounded-full bg-[#101411] text-white shadow-sm">
-                  <ArrowRight className="h-5 w-5" />
+                  <ArrowRight className="h-5 w-5 rotate-90 sm:rotate-0" />
                 </span>
               </div>
               <ComparisonBlock
@@ -88,7 +89,7 @@ export function ImpactDashboard() {
             </div>
           </div>
 
-          <div className="border-t border-[#d8dde6] bg-[#101411] p-5 text-white lg:border-l lg:border-t-0">
+          <div className="min-w-0 border-t border-[#d8dde6] bg-[#101411] p-4 text-white sm:p-5 lg:border-l lg:border-t-0">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-wide text-zinc-400">
@@ -134,17 +135,17 @@ export function ImpactDashboard() {
         />
         <ImpactMetric
           label="Routes Replanned"
-          value={String(metrics.routesReplanned)}
+          value={String(visibleRoutesReplanned)}
           detail="Changed after disruption"
           Icon={Route}
-          tone={metrics.routesReplanned ? "text-blue-700" : "text-zinc-500"}
+          tone={visibleRoutesReplanned ? "text-blue-700" : "text-zinc-500"}
         />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="rounded-xl border border-command-line bg-white p-5 shadow-sm">
+        <div className="min-w-0 rounded-xl border border-command-line bg-white p-4 shadow-sm sm:p-5">
           <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+            <div className="min-w-0">
               <p className="text-[11px] font-black uppercase tracking-wide text-zinc-500">
                 ETA Comparison
               </p>
@@ -171,11 +172,11 @@ export function ImpactDashboard() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-command-line bg-white p-5 shadow-sm">
+        <div className="min-w-0 rounded-xl border border-command-line bg-white p-4 shadow-sm sm:p-5">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="min-w-0">
               <p className="text-[11px] font-black uppercase tracking-wide text-zinc-500">
-                Judge Readout
+                Operations Readout
               </p>
               <h3 className="text-lg font-black text-zinc-950">Why this matters</h3>
             </div>
@@ -205,9 +206,9 @@ function ComparisonBlock({
   muted?: boolean;
 }) {
   return (
-    <div className={`rounded-lg border p-4 ${muted ? "border-zinc-200 bg-zinc-50" : "border-blue-100 bg-blue-50"}`}>
+    <div className={`min-w-0 rounded-lg border p-4 ${muted ? "border-zinc-200 bg-zinc-50" : "border-blue-100 bg-blue-50"}`}>
       <div className="text-[11px] font-black uppercase tracking-wide text-zinc-500">{label}</div>
-      <div className={`mt-3 text-4xl font-black tabular-nums ${muted ? "text-zinc-950" : "text-blue-700"}`}>
+      <div className={`mt-3 text-3xl font-black tabular-nums sm:text-4xl ${muted ? "text-zinc-950" : "text-blue-700"}`}>
         {value}
       </div>
       <p className="mt-2 text-sm font-semibold leading-5 text-zinc-600">{detail}</p>
@@ -229,12 +230,12 @@ function ImpactMetric({
   tone: string;
 }) {
   return (
-    <div className="min-h-[138px] rounded-xl border border-command-line bg-white p-4 shadow-sm">
+    <div className="min-h-[138px] min-w-0 rounded-xl border border-command-line bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <span className="text-[11px] font-black uppercase tracking-wide text-zinc-500">{label}</span>
         <Icon className={`h-5 w-5 shrink-0 ${tone}`} />
       </div>
-      <div className="mt-4 whitespace-nowrap text-3xl font-black tabular-nums text-zinc-950">
+      <div className="mt-4 truncate text-3xl font-black tabular-nums text-zinc-950">
         {value}
       </div>
       <p className="mt-2 text-sm font-semibold leading-5 text-zinc-500">{detail}</p>
@@ -253,9 +254,9 @@ function MiniReadout({ label, value }: { label: string; value: string | number }
 
 function ReadoutLine({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border border-zinc-200 bg-[#f7f8f4] px-3 py-2">
-      <span className="text-sm font-semibold text-zinc-600">{label}</span>
-      <span className="text-sm font-black text-zinc-950">{value}</span>
+    <div className="flex min-w-0 items-center justify-between gap-4 rounded-lg border border-zinc-200 bg-[#f7f8f4] px-3 py-2">
+      <span className="min-w-0 text-sm font-semibold text-zinc-600">{label}</span>
+      <span className="shrink-0 text-sm font-black text-zinc-950">{value}</span>
     </div>
   );
 }

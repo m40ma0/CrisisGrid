@@ -45,6 +45,7 @@ const lngLat = (point: GeoPoint): [number, number] => [point.lng, point.lat];
 const safeId = (value: string) => value.replace(/[^a-zA-Z0-9-_]/g, "-");
 
 const routeColor = (mode: string) => (mode === "osrm" ? "#7c3aed" : "#f97316");
+const VISIBLE_ROUTE_API_LIMIT = 3;
 
 const createMarkerElement = (color: string, label: string, pulse = false) => {
   const element = document.createElement("div");
@@ -329,7 +330,7 @@ export function CrisisMap() {
     const resourcesById = new Map(resources.map((resource) => [resource.id, resource]));
     const incidentsById = new Map(incidents.map((incident) => [incident.id, incident]));
 
-    dispatchPlan.assignments.slice(0, 8).forEach((assignment) => {
+    dispatchPlan.assignments.slice(0, VISIBLE_ROUTE_API_LIMIT).forEach((assignment) => {
       const resource = resourcesById.get(assignment.resourceId);
       const incident = incidentsById.get(assignment.incidentId);
       if (!resource || !incident) return;
@@ -354,8 +355,8 @@ export function CrisisMap() {
       .filter(Boolean) ?? [];
 
   return (
-    <section className="relative min-h-[560px] overflow-hidden rounded-lg border border-[#bdc8bf] bg-zinc-100 shadow-command">
-      <div className="absolute left-4 top-4 z-20 w-[230px] rounded-lg border border-white/80 bg-[#101411]/95 p-3 text-white shadow-lg backdrop-blur">
+    <section className="relative min-h-[520px] min-w-0 overflow-hidden rounded-lg border border-[#bdc8bf] bg-zinc-100 shadow-command sm:min-h-[560px]">
+      <div className="absolute left-3 right-3 top-3 z-20 rounded-lg border border-white/80 bg-[#101411]/95 p-3 text-white shadow-lg backdrop-blur sm:left-4 sm:right-auto sm:top-4 sm:w-[230px]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="mb-1 flex items-center gap-2">
@@ -381,20 +382,20 @@ export function CrisisMap() {
         ref={mapNode}
         className={
           mapState === "live"
-            ? "h-full min-h-[560px] w-full"
-            : "pointer-events-none absolute inset-0 h-full min-h-[560px] w-full opacity-0"
+            ? "h-full min-h-[520px] w-full sm:min-h-[560px]"
+            : "pointer-events-none absolute inset-0 h-full min-h-[520px] w-full opacity-0 sm:min-h-[560px]"
         }
       />
 
       {mapState === "loading" && (
-        <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded border border-white/80 bg-white/95 px-3 py-2 text-xs font-bold text-zinc-700 shadow-sm">
+        <div className="absolute left-3 right-3 top-[128px] z-20 flex items-center justify-center gap-2 rounded border border-white/80 bg-white/95 px-3 py-2 text-xs font-bold text-zinc-700 shadow-sm sm:left-auto sm:right-4 sm:top-4">
           <Loader2 className="h-4 w-4 animate-spin text-blue-700" />
           Loading live map
         </div>
       )}
 
       {mapState !== "live" && (
-        <div className="relative h-full min-h-[560px] overflow-hidden bg-[linear-gradient(90deg,#d7dde6_1px,transparent_1px),linear-gradient(#d7dde6_1px,transparent_1px)] bg-[size:36px_36px]">
+        <div className="relative h-full min-h-[520px] overflow-hidden bg-[linear-gradient(90deg,#d7dde6_1px,transparent_1px),linear-gradient(#d7dde6_1px,transparent_1px)] bg-[size:36px_36px] sm:min-h-[560px]">
           <div className="absolute inset-0 bg-gradient-to-br from-white via-transparent to-zinc-200" />
           {routePairs.map((route, index) =>
             route ? (
@@ -450,7 +451,7 @@ export function CrisisMap() {
         </div>
       )}
 
-      <div className="absolute bottom-4 right-4 z-20 w-[210px] rounded-lg border border-white/80 bg-white/95 p-3 shadow-lg backdrop-blur">
+      <div className="absolute bottom-3 left-3 right-3 z-20 rounded-lg border border-white/80 bg-white/95 p-3 shadow-lg backdrop-blur sm:bottom-4 sm:left-auto sm:right-4 sm:w-[210px]">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs font-black text-zinc-950">
             <ShieldAlert className="h-4 w-4 text-red-600" />

@@ -1,6 +1,11 @@
 import type { GeoPoint, RouteEstimate } from "../types/crisis";
 import { haversineDistanceKm } from "../algorithms/scoring";
 
+const routeCache = new Map<string, Promise<RouteEstimate | null>>();
+
+const routeCacheKey = (origin: GeoPoint, destination: GeoPoint) =>
+  `${origin.lat.toFixed(5)},${origin.lng.toFixed(5)}:${destination.lat.toFixed(5)},${destination.lng.toFixed(5)}`;
+
 const decodePolyline = (encoded: string): GeoPoint[] => {
   let index = 0;
   let lat = 0;
@@ -59,29 +64,38 @@ export const fetchOsrmRoute = async (
   origin: GeoPoint,
   destination: GeoPoint,
 ): Promise<RouteEstimate | null> => {
-  try {
-    const coordinates = `${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
-    const url = `https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=polyline`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("OSRM request failed");
+  const cacheKey = routeCacheKey(origin, destination);
+  const cached = routeCache.get(cacheKey);
+  if (cached) return cached;
 
-    const data = (await response.json()) as {
-      code?: string;
-      routes?: Array<{ distance?: number; duration?: number; geometry?: string }>;
-    };
+  const request: Promise<RouteEstimate | null> = (async () => {
+    try {
+      const coordinates = `${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
+      const url = `https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=polyline`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("OSRM request failed");
 
-    const route = data.routes?.[0];
-    if (data.code !== "Ok" || !route?.geometry) return null;
+      const data = (await response.json()) as {
+        code?: string;
+        routes?: Array<{ distance?: number; duration?: number; geometry?: string }>;
+      };
 
-    return {
-      mode: "osrm",
-      distanceKm: (route.distance ?? 0) / 1000,
-      etaMinutes: (route.duration ?? 0) / 60,
-      path: decodePolyline(route.geometry),
-    };
-  } catch {
-    return null;
-  }
+      const route = data.routes?.[0];
+      if (data.code !== "Ok" || !route?.geometry) return null;
+
+      return {
+        mode: "osrm",
+        distanceKm: (route.distance ?? 0) / 1000,
+        etaMinutes: (route.duration ?? 0) / 60,
+        path: decodePolyline(route.geometry),
+      };
+    } catch {
+      return null;
+    }
+  })();
+
+  routeCache.set(cacheKey, request);
+  return request;
 };
 
 export const resolveVisibleRoute = async (

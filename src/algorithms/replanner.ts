@@ -1,7 +1,7 @@
 import type { Facility, GeoPoint, Incident, Resource, RoadClosure } from "../types/crisis";
 
 export const createRoadClosure = (label: string, from: GeoPoint, to: GeoPoint): RoadClosure => ({
-  id: `closure-${Date.now()}`,
+  id: `closure-${Date.now()}-${Math.random().toString(16).slice(2)}`,
   label,
   from,
   to,
