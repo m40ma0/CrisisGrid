@@ -153,12 +153,15 @@ export type DispatchPlan = {
 export type CrisisMetrics = {
   averageResponseTime: number;
   baselineResponseTime: number;
+  responseTimeReductionPct: number;
   peopleCovered: number;
   peopleAtRisk: number;
   unmetDemand: number;
+  baselineUnmetDemand: number;
   resourcesDeployed: number;
   hospitalUtilization: number;
   shelterUtilization: number;
+  facilitiesOverloaded: number;
   crisisScore: number;
   optimizationRuntimeMs: number;
   candidateAssignments: number;

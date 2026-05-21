@@ -27,8 +27,8 @@ import { fetchWeather, getSeedWeather } from "../services/weather";
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
-const initialCity = cities[0];
-const initialScenario = scenarios[0];
+const initialCity = getCityById("demo-high-risk");
+const initialScenario = getScenarioById("multi-incident");
 
 const createDemoHighRiskIncidents = (): Incident[] => [
   {
@@ -117,6 +117,8 @@ type CrisisState = {
   isLoadingWeather: boolean;
   isGeneratingPlan: boolean;
   isGeneratingBriefing: boolean;
+  hasInitialized: boolean;
+  isRunningJudgeDemo: boolean;
   initialize: () => Promise<void>;
   selectCity: (cityId: City["id"]) => Promise<void>;
   selectScenario: (scenarioId: ScenarioId) => Promise<void>;
@@ -129,6 +131,7 @@ type CrisisState = {
   markHospitalFull: () => void;
   markShelterFull: () => void;
   triggerDemandSpike: () => void;
+  runJudgeDemo: () => Promise<void>;
   resetScenario: () => Promise<void>;
 };
 
@@ -162,12 +165,19 @@ export const useCrisisStore = create<CrisisState>()(
       disruptionLog: [],
       routesReplanned: 0,
       apiStatus: buildApiStatus(getSeedWeather(initialCity), [], false),
-      isLoadingWeather: hasApiKey.openWeather,
+      isLoadingWeather: false,
       isGeneratingPlan: false,
       isGeneratingBriefing: false,
+      hasInitialized: false,
+      isRunningJudgeDemo: false,
 
       initialize: async () => {
+        if (get().hasInitialized) return;
+        set({ hasInitialized: true });
         await get().refreshWeather();
+        if (!get().dispatchPlan) {
+          await get().generatePlan();
+        }
       },
 
       selectCity: async (cityId) => {
@@ -384,6 +394,43 @@ export const useCrisisStore = create<CrisisState>()(
         });
       },
 
+      runJudgeDemo: async () => {
+        set({ isRunningJudgeDemo: true });
+
+        const demoCity = getCityById("demo-high-risk");
+        const demoWeather = getSeedWeather(demoCity);
+
+        set({
+          selectedCity: demoCity,
+          selectedScenarioId: "multi-incident",
+          weather: demoWeather,
+          naturalEvents: [
+            {
+              id: "judge-demo-storm",
+              title: "Simulated severe storm and flood cascade",
+              category: "Severe Storms",
+              source: "seed",
+              distanceKm: 4,
+            },
+          ],
+          ...createScenarioState(demoCity, "multi-incident", demoWeather),
+          roadClosures: [],
+          dispatchPlan: null,
+          briefing: [],
+          disruptionLog: ["Judge demo initialized"],
+          routesReplanned: 0,
+          isLoadingWeather: false,
+          apiStatus: buildApiStatus(demoWeather, [], false),
+        });
+
+        await get().generatePlan();
+        get().blockRoad();
+        get().triggerDemandSpike();
+        get().markHospitalFull();
+        await get().replan();
+        set({ isRunningJudgeDemo: false });
+      },
+
       resetScenario: async () => {
         const { selectedCity, selectedScenarioId, weather } = get();
         set({
@@ -398,6 +445,7 @@ export const useCrisisStore = create<CrisisState>()(
     }),
     {
       name: "crisisgrid-scenario",
+      version: 2,
       partialize: (state) => ({
         selectedCity: state.selectedCity,
         selectedScenarioId: state.selectedScenarioId,

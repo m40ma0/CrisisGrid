@@ -10,6 +10,7 @@ const toneClass = {
 
 export function AlgorithmReceipts() {
   const { dispatchPlan } = useCrisisStore();
+  const metrics = dispatchPlan?.metrics;
 
   return (
     <section className="rounded-lg border border-command-line bg-white p-4 shadow-sm">
@@ -21,12 +22,37 @@ export function AlgorithmReceipts() {
         <Binary className="h-5 w-5 text-zinc-900" />
       </div>
 
+      <div className="mb-3 grid gap-2 md:grid-cols-2">
+        <ProofCard
+          label="Objective"
+          value="min ETA + unmet demand + overload + disruption penalty"
+        />
+        <ProofCard
+          label="Inputs"
+          value="incidents, resources, facilities, weather, closures"
+        />
+        <ProofCard
+          label="Algorithm"
+          value="priority scoring + Dijkstra + greedy assignment + local improvement"
+        />
+        <ProofCard
+          label="Complexity"
+          value="O(incidents x resources log resources)"
+        />
+      </div>
+
       {!dispatchPlan ? (
         <div className="rounded border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-500">
           Build a plan to see the proof trail.
         </div>
       ) : (
-        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-6">
+        <div className="space-y-3">
+          <div className="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">
+            Evaluated {metrics?.candidateAssignments ?? 0} candidate assignments in{" "}
+            {metrics?.optimizationRuntimeMs ?? 0}ms. ETA improved by{" "}
+            {metrics?.responseTimeReductionPct ?? 0}%.
+          </div>
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-6">
           {dispatchPlan.receipts.map((receipt) => {
             const Icon = receipt.tone === "warning" || receipt.tone === "critical" ? TriangleAlert : CheckCircle2;
             return (
@@ -40,8 +66,18 @@ export function AlgorithmReceipts() {
               </div>
             );
           })}
+          </div>
         </div>
       )}
     </section>
+  );
+}
+
+function ProofCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded border border-zinc-200 bg-[#f7f8f4] px-3 py-2">
+      <div className="text-[10px] font-black uppercase tracking-wide text-zinc-500">{label}</div>
+      <div className="mt-1 text-xs font-bold leading-5 text-zinc-800">{value}</div>
+    </div>
   );
 }

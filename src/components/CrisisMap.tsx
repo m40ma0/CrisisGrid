@@ -377,15 +377,23 @@ export function CrisisMap() {
         </div>
       </div>
 
-      {mapState !== "fallback" && <div ref={mapNode} className="h-full min-h-[560px] w-full" />}
+      <div
+        ref={mapNode}
+        className={
+          mapState === "live"
+            ? "h-full min-h-[560px] w-full"
+            : "pointer-events-none absolute inset-0 h-full min-h-[560px] w-full opacity-0"
+        }
+      />
 
       {mapState === "loading" && (
-        <div className="absolute inset-0 flex h-full min-h-[560px] items-center justify-center bg-zinc-100">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-700" />
+        <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded border border-white/80 bg-white/95 px-3 py-2 text-xs font-bold text-zinc-700 shadow-sm">
+          <Loader2 className="h-4 w-4 animate-spin text-blue-700" />
+          Loading live map
         </div>
       )}
 
-      {mapState === "fallback" && (
+      {mapState !== "live" && (
         <div className="relative h-full min-h-[560px] overflow-hidden bg-[linear-gradient(90deg,#d7dde6_1px,transparent_1px),linear-gradient(#d7dde6_1px,transparent_1px)] bg-[size:36px_36px]">
           <div className="absolute inset-0 bg-gradient-to-br from-white via-transparent to-zinc-200" />
           {routePairs.map((route, index) =>

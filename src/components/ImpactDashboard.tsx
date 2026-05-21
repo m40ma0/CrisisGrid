@@ -44,9 +44,16 @@ export function ImpactDashboard() {
     <section className="space-y-3">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {metricCard(
-          "Avg response",
+          "Baseline ETA",
+          `${metrics.baselineResponseTime}m`,
+          "Nearest-resource dispatch",
+          Clock,
+          "text-zinc-500",
+        )}
+        {metricCard(
+          "Optimized ETA",
           `${metrics.averageResponseTime}m`,
-          `${Math.max(0, metrics.baselineResponseTime - metrics.averageResponseTime).toFixed(1)}m faster than baseline`,
+          `${metrics.responseTimeReductionPct}% faster`,
           Clock,
           "text-blue-700",
         )}
@@ -59,10 +66,34 @@ export function ImpactDashboard() {
         )}
         {metricCard(
           "Unmet demand",
-          `${metrics.unmetDemand}`,
-          "Resource units still needed",
+          `${metrics.baselineUnmetDemand} -> ${metrics.unmetDemand}`,
+          "Baseline to optimized",
           Activity,
           metrics.unmetDemand ? "text-amber-700" : "text-emerald-700",
+        )}
+        {metricCard(
+          "Overloaded",
+          `${metrics.facilitiesOverloaded}`,
+          "Facilities above capacity",
+          Gauge,
+          metrics.facilitiesOverloaded ? "text-red-700" : "text-emerald-700",
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+        {metricCard(
+          "People covered",
+          `${metrics.peopleCovered}`,
+          `${metrics.peopleAtRisk} at risk`,
+          Users,
+          "text-emerald-700",
+        )}
+        {metricCard(
+          "Routes replanned",
+          `${metrics.routesReplanned}`,
+          "After disruption",
+          Activity,
+          metrics.routesReplanned ? "text-blue-700" : "text-zinc-400",
         )}
         {metricCard(
           "Crisis score",

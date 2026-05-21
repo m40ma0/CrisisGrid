@@ -13,32 +13,32 @@ const buildFallbackBriefing = (payload: BriefingPayload) => {
   const plan = payload.plan;
   const highest = [...payload.incidents].sort((a, b) => b.severity - a.severity)[0];
   const resources = plan?.assignments.length ?? 0;
-  const average = plan?.metrics.averageResponseTime.toFixed(1) ?? "pending";
   const unmet = plan?.metrics.unmetDemand ?? payload.incidents.length;
   const covered = plan?.metrics.peopleCovered ?? 0;
 
   return [
-    `${highest?.title ?? "Primary incident"} is the highest priority in ${payload.city.name}.`,
-    `${resources} resources are deployed by the deterministic optimizer; Gemini is explanation-only.`,
-    `Projected average response time is ${average} minutes after assignment.`,
-    `${covered} residents are covered, with ${unmet} remaining unmet resource units.`,
-    `Main operational risk: ${payload.weather.riskLabel.toLowerCase()} weather risk and capacity pressure at critical facilities.`,
+    `${highest?.title ?? "Primary incident"} is driving a ${payload.weather.riskLabel.toLowerCase()} emergency posture in ${payload.city.name}.`,
+    `Deploy ${resources} optimized resources now and keep evacuation, triage, and utility crews coordinated.`,
+    `The allocation was chosen from deterministic priority, ETA, resource-fit, weather, and capacity scoring.`,
+    `The plan prioritizes faster high-severity coverage while leaving ${unmet} unmet resource units visible for commanders.`,
+    `Watch facility capacity and weather-driven road disruption; ${covered} residents are currently covered.`,
   ];
 };
 
 const buildPrompt = (payload: BriefingPayload) => `You are an emergency operations analyst.
 
-Summarize this dispatch plan in 5 concise bullet points for a city emergency commander.
+Summarize this dispatch plan in exactly 5 concise lines for a city emergency commander.
 
 Include:
-- most urgent incident
-- resources deployed
-- expected improvement
-- remaining unmet demand
-- one operational risk
+- Situation
+- Recommended action
+- Why this allocation was chosen
+- Tradeoff made
+- Next risk to watch
 
 Do not invent numbers. Use only the JSON provided.
 Do not make dispatch decisions. The JSON plan was produced by a deterministic optimizer.
+Do not include headings; the user interface adds those.
 
 JSON:
 ${JSON.stringify(payload, null, 2)}`;
