@@ -129,7 +129,24 @@ export function CommandCenter() {
             </span>
           </button>
 
-          <div className="nav-fade relative min-w-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.04]">
+          <label className="grid gap-1 md:hidden">
+            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/38">
+              Section
+            </span>
+            <select
+              value={activePage}
+              onChange={(event) => setActivePage(event.target.value as PageId)}
+              className="h-10 w-full rounded-full border border-white/10 bg-[#f7f7ee] px-4 text-sm font-black text-[#080a07] outline-none"
+            >
+              {pages.map((page) => (
+                <option key={page.id} value={page.id}>
+                  {page.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="nav-fade relative hidden min-w-0 overflow-hidden rounded-full border border-white/10 bg-white/[0.04] md:block">
             <nav className="nav-scroll flex min-w-0 gap-1 overflow-x-auto p-1 pr-8">
               {pages.map(({ id, label, Icon }) => {
                 const active = activePage === id;
@@ -313,6 +330,7 @@ function OverviewPage({
         <CrisisMap />
         <MissionStrip dispatchPlan={dispatchPlan} disruptionLog={disruptionLog} />
         <OverviewProofPanel dispatchPlan={dispatchPlan} routesReplanned={routesReplanned} />
+        <OptimizationExplainerPanel />
       </section>
 
       <aside className="space-y-4">
@@ -493,6 +511,51 @@ function IncidentsPage() {
         <ScenarioPanel />
       </aside>
     </div>
+  );
+}
+
+function OptimizationExplainerPanel() {
+  const steps = [
+    {
+      label: "Inputs",
+      value: "Incidents, weather, facilities, resources, closures",
+    },
+    {
+      label: "Scoring",
+      value: "Severity + people affected + urgency + weather risk",
+    },
+    {
+      label: "Assignment",
+      value: "Greedy resource fit with Dijkstra route penalties",
+    },
+    {
+      label: "Outcome",
+      value: "ETA reduction, coverage, unmet demand, replans",
+    },
+  ];
+
+  return (
+    <section className="rounded border border-white/10 bg-white/[0.05] p-5">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/45">
+            How optimization works
+          </p>
+          <h2 className="mt-1 text-xl font-black">Not just a map. A dispatch engine.</h2>
+        </div>
+        <Cpu className="h-5 w-5 text-white/42" />
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-4">
+        {steps.map((step, index) => (
+          <div key={step.label} className="rounded border border-white/10 bg-black/15 p-4">
+            <div className="text-[10px] font-black uppercase tracking-[0.16em] text-red-200">
+              0{index + 1} / {step.label}
+            </div>
+            <p className="mt-2 text-sm font-semibold leading-6 text-white/68">{step.value}</p>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

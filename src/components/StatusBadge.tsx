@@ -7,7 +7,19 @@ const modeClass: Record<ApiMode, string> = {
 };
 
 export function StatusBadge({ label, mode }: { label: string; mode: ApiMode }) {
-  const status = mode === "live" ? "LIVE" : mode === "mixed" ? "HYBRID" : "DEMO";
+  const displayLabel =
+    label === "MapLibre"
+      ? "Live Map"
+      : label === "Weather"
+        ? mode === "live"
+          ? "Live Weather Feed"
+          : "Simulated Weather Feed"
+        : label === "Gemini"
+          ? mode === "fallback"
+            ? "AI Brief Fallback"
+            : "AI Brief + Fallback"
+          : label;
+  const status = mode === "live" ? "LIVE" : mode === "mixed" ? "HYBRID" : "SIM";
   const detail =
     mode === "live"
       ? `${label} is using a live service.`
@@ -22,7 +34,8 @@ export function StatusBadge({ label, mode }: { label: string; mode: ApiMode }) {
       aria-label={`${label}: ${detail}`}
     >
       <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      {label} · {status}
+      {displayLabel}
+      <span className="opacity-70">· {status}</span>
     </span>
   );
 }
