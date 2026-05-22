@@ -7,35 +7,35 @@ const modeClass: Record<ApiMode, string> = {
 };
 
 export function StatusBadge({ label, mode }: { label: string; mode: ApiMode }) {
-  const displayLabel =
-    label === "MapLibre"
-      ? "Live Map"
-      : label === "Weather"
-        ? mode === "live"
-          ? "Live Weather Feed"
-          : "Simulated Weather Feed"
-        : label === "Gemini"
-          ? mode === "fallback"
-            ? "AI Brief Fallback"
-            : "AI Brief + Fallback"
-          : label;
-  const status = mode === "live" ? "LIVE" : mode === "mixed" ? "HYBRID" : "SIM";
-  const detail =
-    mode === "live"
-      ? `${label} is using a live service.`
-      : mode === "mixed"
-        ? `${label} uses live calls when available and deterministic fallback when rate-limited.`
-        : `${label} is using deterministic fallback data for operational reliability.`;
+  // const displayLabel =
+  //   label === "MapLibre"
+  //     ? "Live Map"
+  //     : label === "Weather"
+  //       ? mode === "live"
+  //         ? "Live Weather Feed"
+  //         : "Simulated Weather Feed"
+  //       : label === "Gemini"
+  //         ? mode === "fallback"
+  //           ? "AI Brief Fallback"
+  //           : "AI Brief + Fallback"
+  //         : label;
+  // const status = mode === "live" ? "LIVE" : mode === "mixed" ? "HYBRID" : "SIM";
+  // const detail =
+  //   mode === "live"
+  //     ? `${label} is using a live service.`
+  //     : mode === "mixed"
+  //       ? `${label} uses live calls when available and deterministic fallback when rate-limited.`
+  //       : `${label} is using deterministic fallback data for operational reliability.`;
 
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold ${modeClass[mode]}`}
-      title={detail}
-      aria-label={`${label}: ${detail}`}
-    >
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-      {displayLabel}
-      <span className="opacity-70">· {status}</span>
-    </span>
-  );
+  // return (
+  //   <span
+  //     className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold ${modeClass[mode]}`}
+  //     title={detail}
+  //     aria-label={`${label}: ${detail}`}
+  //   >
+  //     <span className="h-1.5 w-1.5 rounded-full bg-current" />
+  //     {displayLabel}
+  //     <span className="opacity-70">· {status}</span>
+  //   </span>
+  // );
 }
