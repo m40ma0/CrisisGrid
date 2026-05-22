@@ -9,7 +9,6 @@ import {
   MapPinned,
   Radio,
   Route,
-  ShieldAlert,
   Siren,
   Users,
   Zap,
@@ -116,8 +115,12 @@ export function CommandCenter() {
             onClick={() => setActivePage("overview")}
             className="flex min-w-0 items-center gap-3 text-left"
           >
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/15 bg-white/10">
-              <ShieldAlert className="h-5 w-5 text-red-300" />
+            <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border border-cyan-300/25 bg-[#061221] shadow-[0_0_22px_rgba(34,211,238,0.16)]">
+              <img
+                src="/logo.png"
+                alt="CrisisGrid logo"
+                className="h-full w-full object-cover"
+              />
             </span>
             <span className="min-w-0">
               <span className="block text-sm font-black uppercase tracking-[0.16em]">
